@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: sva-clone-dubbing
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: IS_CLOUD
+        value: true

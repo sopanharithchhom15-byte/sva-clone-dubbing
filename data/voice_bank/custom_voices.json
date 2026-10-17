@@ -1,0 +1,10 @@
+[
+  {
+    "id": "voice_1792132873714",
+    "name": "Tinfy",
+    "gender": "custom",
+    "provider": "voxcpm",
+    "ref_audio": "1792132873_Tinfy 01.MP3",
+    "prompt_text": ""
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "narrator_male": {
+    "provider": "voxcpm",
+    "ref_audio": "1792134948_សម្លេងសាមកុក.mp3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "narrator_female": {
+    "provider": "voxcpm",
+    "ref_audio": "1792134987_សម្លេងស្រីស្រទន់.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "heroine_female": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135010_សម្លេងស្រីស្រទន់.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "old_man": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135029_សម្លេងតួរខ្មែរនាយប៉េ.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "old_woman": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135038_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "boy": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135046_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "girl": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135054_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "thought_male": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135065_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "thought_female": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135074_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "drama_chinese_male": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135084_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "drama_chinese_female": {
+    "provider": "voxcpm",
+    "ref_audio": "1792135092_eBookCambodia Admin កន្និកា.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  },
+  "hero_male": {
+    "provider": "voxcpm",
+    "ref_audio": "1792136487_សម្លែងស្រែកៗ.MP3",
+    "voice_code": "km-KH-PisethNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz"
+  }
+}

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="accent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad)"/>
+  <rect x="32" y="32" width="448" height="448" rx="88" fill="none" stroke="url(#accent-grad)" stroke-width="8" opacity="0.4"/>
+  <!-- Clapper / Film & Mic Motif -->
+  <g transform="translate(96, 96)">
+    <!-- Movie Slate / Screen -->
+    <rect x="20" y="40" width="280" height="200" rx="24" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+    <!-- Play symbol -->
+    <polygon points="135,110 135,170 195,140" fill="url(#accent-grad)"/>
+    <!-- Sound Waves -->
+    <path d="M 230,105 A 40,40 0 0,1 230,175" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M 255,85 A 70,70 0 0,1 255,195" fill="none" stroke="#818cf8" stroke-width="8" stroke-linecap="round"/>
+    <!-- Mic icon overlay -->
+    <g transform="translate(180, 160)">
+      <circle cx="50" cy="50" r="48" fill="#0f172a" stroke="#38bdf8" stroke-width="6"/>
+      <!-- Mic body -->
+      <rect x="42" y="26" width="16" height="32" rx="8" fill="url(#accent-grad)"/>
+      <path d="M 34,44 A 16,16 0 0,0 66,44" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <line x1="50" y1="60" x2="50" y2="72" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <line x1="38" y1="72" x2="62" y2="72" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <text x="256" y="440" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="44" fill="#38bdf8" text-anchor="middle" letter-spacing="4">SVA DUB</text>
+</svg>

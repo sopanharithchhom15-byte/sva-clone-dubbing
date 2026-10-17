@@ -1,0 +1,17 @@
+{
+  "video_path": "",
+  "video_name": "",
+  "audio_path": "",
+  "duration": 0.0,
+  "subtitles": [
+    {
+      "start": "00:00:00,000",
+      "voice": "narrator_male",
+      "end": "00:00:02,000",
+      "text": "Hello Alpha",
+      "index": 0
+    }
+  ],
+  "has_master_dub": false,
+  "has_rendered_video": false
+}

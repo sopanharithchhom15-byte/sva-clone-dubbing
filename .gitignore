@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary & Upload directories
+data/uploads/*
+!data/uploads/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+data/temp/*
+!data/temp/.gitkeep
+
+# Local settings
+data/settings.json
+
+# Windows binaries (Cloudflare & MinGit for local dev only)
+bin/
+crash_log.txt
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS files
+Thumbs.db
+.DS_Store

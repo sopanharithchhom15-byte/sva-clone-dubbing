@@ -1,0 +1,30 @@
+{
+  "video_path": "",
+  "video_name": "",
+  "audio_path": "",
+  "duration": 0.0,
+  "subtitles": [
+    {
+      "index": 0,
+      "start": "00:00:01,000",
+      "end": "00:00:03,000",
+      "start_sec": 1.0,
+      "end_sec": 3.0,
+      "text": "សួស្តីអ្នកទាំងអស់គ្នា",
+      "voice": "hero_male",
+      "has_audio": false
+    },
+    {
+      "index": 1,
+      "start": "00:00:04,000",
+      "end": "00:00:06,000",
+      "start_sec": 4.0,
+      "end_sec": 6.0,
+      "text": "សួស្តីបង",
+      "voice": "heroine_female",
+      "has_audio": false
+    }
+  ],
+  "has_master_dub": false,
+  "has_rendered_video": false
+}

@@ -1,0 +1,380 @@
+{
+  "video_path": "D:\\Panharith\\App\\Web APP តាមទូរស័ព្ទ\\data\\sessions\\default\\input_media.mp4",
+  "video_name": "Ep_06 - tiktok_video.mp4",
+  "audio_path": "D:\\Panharith\\App\\Web APP តាមទូរស័ព្ទ\\data\\sessions\\default\\extracted_audio.mp3",
+  "duration": 168.6,
+  "subtitles": [
+    {
+      "index": 0,
+      "start": "00:00:09,800",
+      "end": "00:00:15,000",
+      "start_sec": 9.8,
+      "end_sec": 15.0,
+      "text": "ដល់ពេលបង្ហាញជំនាញពិតប្រាកដហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 1,
+      "start": "00:00:21,500",
+      "end": "00:00:23,800",
+      "start_sec": 21.5,
+      "end_sec": 23.8,
+      "text": "ភ្ញាក់ឡើងលោកពូ! ខ្ញុំយកអាហារក្តៅៗមកឱ្យលោកពូហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 2,
+      "start": "00:00:24,000",
+      "end": "00:00:25,500",
+      "start_sec": 24.0,
+      "end_sec": 25.5,
+      "text": "ឃ្លានខ្លាំងណាស់...[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 3,
+      "start": "00:00:25,800",
+      "end": "00:00:27,000",
+      "start_sec": 25.8,
+      "end_sec": 27.0,
+      "text": "នែ៎ ឱ្យលោកពូ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 4,
+      "start": "00:00:40,500",
+      "end": "00:00:45,000",
+      "start_sec": 40.5,
+      "end_sec": 45.0,
+      "text": "ពួកឯងម្នាក់ៗមិនឱ្យអញបារម្ភសោះ! លើកនេះមានរឿងអីទៀតហើយ?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 5,
+      "start": "00:00:45,200",
+      "end": "00:00:47,000",
+      "start_sec": 45.2,
+      "end_sec": 47.0,
+      "text": "អ្នកប្រុសតូចកាលពីយប់មិញបានលួចស៊ីអីហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 6,
+      "start": "00:00:47,200",
+      "end": "00:00:48,800",
+      "start_sec": 47.2,
+      "end_sec": 48.8,
+      "text": "អ្នកណាឱ្យគេស៊ី?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 7,
+      "start": "00:00:49,000",
+      "end": "00:00:50,000",
+      "start_sec": 49.0,
+      "end_sec": 50.0,
+      "text": "ខ្ញុំ... ខ្ញុំមិនដឹងទេ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 8,
+      "start": "00:00:50,200",
+      "end": "00:00:52,000",
+      "start_sec": 50.2,
+      "end_sec": 52.0,
+      "text": "ទៅពិនិត្យមើលកាមេរ៉ាសុវត្ថិភាពឱ្យអញភ្លាម![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 9,
+      "start": "00:00:52,500",
+      "end": "00:00:55,800",
+      "start_sec": 52.5,
+      "end_sec": 55.8,
+      "text": "វ៉ៃអើយ... ក្នុងបន្ទប់គ្មានកាមេរ៉ាទេ តែតាមផ្លូវដើរមាន! ច្បាស់ជាតាមរកដល់ក្បាលអញមិនខាន![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 10,
+      "start": "00:00:56,000",
+      "end": "00:00:58,000",
+      "start_sec": 56.0,
+      "end_sec": 58.0,
+      "text": "លោកយាយថ្លៃ! លងខ្មោចហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 11,
+      "start": "00:00:58,500",
+      "end": "00:01:00,800",
+      "start_sec": 58.5,
+      "end_sec": 60.8,
+      "text": "អាអៀនតូច! ហ៊ានចូលមកក្នុងបន្ទប់សម្រាករបស់យើងផងហ្ហេស?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 12,
+      "start": "00:01:01,000",
+      "end": "00:01:05,000",
+      "start_sec": 61.0,
+      "end_sec": 65.0,
+      "text": "ក្រពះលោកយាយ... និយាយទៅលោកយាយក៏មិនយល់ដែរ! លោកនាយកថាត្រូវប្តូរលោកយាយទៅឡើងលើ楼...[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 13,
+      "start": "00:01:08,000",
+      "end": "00:01:11,500",
+      "start_sec": 68.0,
+      "end_sec": 71.5,
+      "text": "លឺថាក្នុងកាមេរ៉ាសុវត្ថិភាពមើលមិនឃើញមនុស្សទេ តែក្នុងបន្ទប់គេបែរជាមានឆ្អឹងលេចចេញមក ច្បាស់ជាលងខ្មោចហើយ![cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 14,
+      "start": "00:01:11,600",
+      "end": "00:01:12,800",
+      "start_sec": 71.6,
+      "end_sec": 72.8,
+      "text": "ឬមួយជាអ្នកគ្រូពេទ្យដែលមើលថែគេជាអ្នកឱ្យ?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 15,
+      "start": "00:01:13,000",
+      "end": "00:01:15,000",
+      "start_sec": 73.0,
+      "end_sec": 75.0,
+      "text": "នាងមិនឃើញអ្នកគ្រូពេទ្យភ័យស្លន់ស្លោថ្នាក់ហ្នឹងទេហ្ហេស? នាងសុំឈប់ធ្វើការយូរហើយ តើអាចជាប្រគល់ឱ្យបានយ៉ាងម៉េច?[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 16,
+      "start": "00:01:15,500",
+      "end": "00:01:19,000",
+      "start_sec": 75.5,
+      "end_sec": 79.0,
+      "text": "កាមេរ៉ាសុវត្ថិភាពថតមិនទាន់អញទេ! អញនៅតែជាមនុស្សឆ្កួតដែលគ្មានកង្វល់ដដែល![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 17,
+      "start": "00:01:21,000",
+      "end": "00:01:24,800",
+      "start_sec": 81.0,
+      "end_sec": 84.8,
+      "text": "ក្មេងៗត្រូវតែគោរពចាស់ទុំ! កាលពីម្សិលមិញលោកពូឱ្យឯងភ្លៅមាន់ពីរ ថ្ងៃនេះឯងត្រូវតែសងមកវិញ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 18,
+      "start": "00:01:25,000",
+      "end": "00:01:26,500",
+      "start_sec": 85.0,
+      "end_sec": 86.5,
+      "text": "លោកពូ! ឱ្យលោកពូហូបចុះ![cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 19,
+      "start": "00:01:27,000",
+      "end": "00:01:30,500",
+      "start_sec": 87.0,
+      "end_sec": 90.5,
+      "text": "ក្មួយប្រុសធំ! លោកពូស្រឡាញ់ឯងណាស់! ស្អែកនេះយើងនឹងប្រគល់រាជបល្ល័ង្កឱ្យឯង![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 20,
+      "start": "00:01:31,000",
+      "end": "00:01:34,000",
+      "start_sec": 91.0,
+      "end_sec": 94.0,
+      "text": "ច្របូកច្របល់អស់ហើយ! ស្រាក្រហមឡាហ្វីឆ្នាំ ១៩៨២ របស់អញនៅឯណា? អ្នកណាលួចស្រារបស់អញ?![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 21,
+      "start": "00:01:36,500",
+      "end": "00:01:38,800",
+      "start_sec": 96.5,
+      "end_sec": 98.8,
+      "text": "លែងអញ! ស្រារបស់អញនៅខាងក្នុងនោះនៅឡើយទេ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 22,
+      "start": "00:01:39,000",
+      "end": "00:01:42,500",
+      "start_sec": 99.0,
+      "end_sec": 102.5,
+      "text": "លោកយាយថ្លៃ! ស្រារបស់លោកយាយនៅជាន់លើទេ! នៅជាន់លើ! ខ្ញុំនាំលោកយាយទៅយកណា![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 23,
+      "start": "00:01:44,000",
+      "end": "00:01:45,500",
+      "start_sec": 104.0,
+      "end_sec": 105.5,
+      "text": "អាអៀនតូច! នាំផ្លូវ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 24,
+      "start": "00:01:48,500",
+      "end": "00:01:54,800",
+      "start_sec": 108.5,
+      "end_sec": 114.8,
+      "text": "លោកយាយថ្លៃ អង្គុយចុះសិនទៅ! ខ្ញុំទៅយកឱ្យលោកយាយឥឡូវនេះ! បើលោកយាយស្តាប់បង្គាប់ ខ្ញុំនឹងថែមនំខេកឱ្យមួយដុំទៀត![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 25,
+      "start": "00:01:58,000",
+      "end": "00:02:00,000",
+      "start_sec": 118.0,
+      "end_sec": 120.0,
+      "text": "លោកពូ! មិនអីទេមែនទេ? ពួកវាមានធ្វើបាបលោកពូអត់?[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 26,
+      "start": "00:02:00,100",
+      "end": "00:02:02,000",
+      "start_sec": 120.1,
+      "end_sec": 122.0,
+      "text": "វ៉ៃអើយ... អាម្នាក់នេះមកដណ្តើមនំខេកស៊ីទៀតហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 27,
+      "start": "00:02:02,200",
+      "end": "00:02:06,800",
+      "start_sec": 122.2,
+      "end_sec": 126.8,
+      "text": "គ្មានទេ! យើងជាម្ចាស់នៃទឹកដីនេះ អ្នកណាហ៊ានមកធ្វើបាបយើង? ពួកវាក្រាន់តែទៅយកអីឱ្យយើងហូបប៉ុណ្ណោះ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 28,
+      "start": "00:02:07,000",
+      "end": "00:02:08,000",
+      "start_sec": 127.0,
+      "end_sec": 128.0,
+      "text": "ចុះបន្តិចទៀតពួកយើងចេញទៅលេងខាងក្រៅអត់?[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 29,
+      "start": "00:02:08,200",
+      "end": "00:02:14,500",
+      "start_sec": 128.2,
+      "end_sec": 134.5,
+      "text": "យើងជាក្សត្រមួយអង្គ ត្រូវលីរែករាជកិច្ចដ៏ធំធេងរបស់ប្រទេសជាតិ! មិនអាចទៅលេងជាមួយពួកឯងបានទេ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 30,
+      "start": "00:02:16,500",
+      "end": "00:02:19,500",
+      "start_sec": 136.5,
+      "end_sec": 139.5,
+      "text": "លោកពូស្អប់ខ្ញុំហើយមែនទេ? ខ្ញុំចាកចេញទៅឥឡូវនេះហើយ...[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 31,
+      "start": "00:02:20,000",
+      "end": "00:02:24,000",
+      "start_sec": 140.0,
+      "end_sec": 144.0,
+      "text": "ឈប់! គ្មានបញ្ជារបស់យើង តើឯងចាកចេញទៅណា? ចាំសិនទៅ! អាអៀនតូចជិតមកដល់វិញហើយ![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 32,
+      "start": "00:02:31,000",
+      "end": "00:02:33,000",
+      "start_sec": 151.0,
+      "end_sec": 153.0,
+      "text": "ក្មួយប្រុសធំ! ដឹងថាជាស្អីអត់?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 33,
+      "start": "00:02:33,100",
+      "end": "00:02:34,000",
+      "start_sec": 153.1,
+      "end_sec": 154.0,
+      "text": "អឹម... នំខេក?[cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 34,
+      "start": "00:02:34,200",
+      "end": "00:02:40,500",
+      "start_sec": 154.2,
+      "end_sec": 160.5,
+      "text": "ខុសហើយ! នេះមិនមែនជានំខេកទេ! កុំមើលឃើញវាដូចនំខេកឱ្យសោះ តាមពិតវាជាឱសថបុរាណដែលយើងឱ្យផ្ទះបាយរាជវាំងធ្វើឡើង ជូរល្វីងណាស់! ឯងចង់ភ្លក់មួយម៉ាត់អត់?[cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    },
+    {
+      "index": 35,
+      "start": "00:02:40,800",
+      "end": "00:02:42,000",
+      "start_sec": 160.8,
+      "end_sec": 162.0,
+      "text": "ខ្ញុំមិនហូបថ្នាំទេ![cite: 6]",
+      "voice": "hero_male",
+      "has_audio": true
+    },
+    {
+      "index": 36,
+      "start": "00:02:46,000",
+      "end": "00:02:47,500",
+      "start_sec": 166.0,
+      "end_sec": 167.5,
+      "text": "ល្វីងណាស់![cite: 6]",
+      "voice": "heroine_female",
+      "has_audio": true
+    }
+  ],
+  "has_master_dub": true,
+  "has_rendered_video": true
+}

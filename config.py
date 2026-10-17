@@ -1,0 +1,80 @@
+import os
+import sys
+import json
+import socket
+from pathlib import Path
+
+# Paths
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+UPLOAD_DIR = DATA_DIR / "uploads"
+OUTPUT_DIR = DATA_DIR / "outputs"
+VOICE_BANK_DIR = DATA_DIR / "voice_bank"
+TEMP_DIR = DATA_DIR / "temp"
+
+for d in [DATA_DIR, UPLOAD_DIR, OUTPUT_DIR, VOICE_BANK_DIR, TEMP_DIR]:
+    d.mkdir(parents=True, exist_ok=True)
+
+SETTINGS_FILE = DATA_DIR / "settings.json"
+
+# Check if there is an existing Gemini API key from Panharith API Key folder
+DEFAULT_GEMINI_KEY = ""
+try:
+    alt_settings = Path(r"D:\Panharith\App\Panharith API Key\settings.json")
+    if alt_settings.exists():
+        with open(alt_settings, "r", encoding="utf-8") as f:
+            alt_data = json.load(f)
+            DEFAULT_GEMINI_KEY = alt_data.get("gemini_api_key", "")
+except Exception:
+    pass
+
+DEFAULT_SETTINGS = {
+    "app_name": "SVA Clone Dubbing",
+    "gemini_api_key": DEFAULT_GEMINI_KEY,
+    "gemini_model": "gemini-3.8-flash",
+    "tts_provider": "edge_tts", # "edge_tts" or "voxcpm"
+    "voxcpm_endpoint": "https://openbmb-voxcpm-demo.hf.space",
+    "voxcpm_space_id": "openbmb/VoxCPM-Demo",
+    "hf_token": "",
+    "default_voice": "km-KH-PisethNeural",
+    "dub_volume": 120,
+    "bg_volume": 20,
+    "mute_original": False,
+    "burn_subtitles": True,
+    "subtitle_font_size": 22,
+    "subtitle_color": "&H00FFFFFF",
+    "subtitle_bg": True
+}
+
+def load_settings() -> dict:
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                res = DEFAULT_SETTINGS.copy()
+                res.update(saved)
+                # If gemini key was empty in saved but available in alt_settings, fill it
+                if not res.get("gemini_api_key") and DEFAULT_GEMINI_KEY:
+                    res["gemini_api_key"] = DEFAULT_GEMINI_KEY
+                return res
+        except Exception:
+            pass
+    return DEFAULT_SETTINGS.copy()
+
+def save_settings(data: dict):
+    current = load_settings()
+    current.update(data)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(current, f, ensure_ascii=False, indent=2)
+    return current
+
+def get_local_ip() -> str:
+    """Returns local LAN IP for phone access"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
