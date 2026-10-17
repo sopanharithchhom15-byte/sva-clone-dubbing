@@ -40,6 +40,7 @@ DEFAULT_SETTINGS = {
     "dub_volume": 120,
     "bg_volume": 20,
     "mute_original": False,
+    "use_bgm_only": True,
     "burn_subtitles": True,
     "subtitle_font_size": 22,
     "subtitle_color": "&H00FFFFFF",

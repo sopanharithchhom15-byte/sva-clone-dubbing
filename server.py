@@ -36,9 +36,10 @@ from engine.transcriber import (
 )
 from engine.tts_engine import generate_segment_voice, generate_voice_preview
 from engine.video_renderer import build_master_dub_track, create_ass_subtitles, render_dubbed_video
+from engine.vocal_remover import separate_vocals_and_bgm, create_video_with_bgm_only
 from engine.tunnel import start_tunnel, get_public_url, stop_tunnel
 
-app = FastAPI(title="SVA Clone Dubbing", version="2.5.0")
+app = FastAPI(title="SVA Clone Dubbing", version="2.6.0")
 
 @app.on_event("startup")
 async def startup_event():
@@ -68,6 +69,20 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 transcribe_states: Dict[str, Dict[str, Any]] = {}
 tts_progress_states: Dict[str, Dict[str, Any]] = {}
 render_progress_states: Dict[str, Dict[str, Any]] = {}
+vocal_separation_states: Dict[str, Dict[str, Any]] = {}
+
+def get_vocal_separation_state(session_id: str) -> Dict[str, Any]:
+    if session_id not in vocal_separation_states:
+        vocal_separation_states[session_id] = {
+            "is_running": False,
+            "percent": 0,
+            "message": "រួចរាល់",
+            "has_bgm": False,
+            "bgm_url": "",
+            "vocals_url": "",
+            "video_bgm_url": ""
+        }
+    return vocal_separation_states[session_id]
 
 def get_transcribe_state(session_id: str) -> Dict[str, Any]:
     if session_id not in transcribe_states:
@@ -97,21 +112,35 @@ def get_session_dir(session_id: str = "default") -> Path:
 
 def load_session_state(sdir: Path) -> Dict[str, Any]:
     f = sdir / "state.json"
-    if f.exists():
-        try:
-            with open(f, "r", encoding="utf-8") as fp:
-                return json.load(fp)
-        except Exception:
-            pass
-    return {
+    state = {
         "video_path": "",
         "video_name": "",
         "audio_path": "",
         "duration": 0.0,
         "subtitles": [],
         "has_master_dub": False,
-        "has_rendered_video": False
+        "has_rendered_video": False,
+        "has_bgm": False
     }
+    if f.exists():
+        try:
+            with open(f, "r", encoding="utf-8") as fp:
+                saved = json.load(fp)
+                state.update(saved)
+        except Exception:
+            pass
+            
+    # Dynamically verify generated BGM / Vocals / Video files
+    bgm_file = sdir / "bgm.mp3"
+    vocals_file = sdir / "vocals.mp3"
+    video_bgm_file = sdir / "video_bgm_only.mp4"
+    cur_time = int(time.time())
+    
+    state["has_bgm"] = bgm_file.exists()
+    state["bgm_url"] = f"/api/media/bgm?session_id={sdir.name}&t={cur_time}" if bgm_file.exists() else ""
+    state["vocals_url"] = f"/api/media/vocals?session_id={sdir.name}&t={cur_time}" if vocals_file.exists() else ""
+    state["video_bgm_url"] = f"/api/media/video_bgm_only?session_id={sdir.name}&t={cur_time}" if video_bgm_file.exists() else ""
+    return state
 
 def save_session_state(sdir: Path, state: Dict[str, Any]):
     f = sdir / "state.json"
@@ -295,6 +324,17 @@ async def api_upload_media(
     extracted_audio = sdir / "extracted_audio.mp3"
     extract_audio(str(dest_file), str(extracted_audio))
     
+    # Reset previous BGM/Vocals and Rendered files for new media
+    for old_file in ["bgm.mp3", "vocals.mp3", "video_bgm_only.mp4", "rendered_dubbed_video.mp4"]:
+        old_p = sdir / old_file
+        if old_p.exists():
+            try:
+                old_p.unlink(missing_ok=True)
+            except Exception:
+                pass
+                
+    state["has_bgm"] = False
+    state["has_rendered_video"] = False
     state["video_path"] = str(dest_file)
     state["video_name"] = file.filename
     state["audio_path"] = str(extracted_audio)
@@ -428,6 +468,100 @@ def run_transcribe_worker(sdir: Path, audio_path: str, api_key: str, model_name:
 @app.get("/api/transcribe_progress")
 async def api_transcribe_progress(session_id: str = "default"):
     return JSONResponse(get_transcribe_state(session_id))
+
+@app.post("/api/separate_vocals")
+async def api_separate_vocals(request: Request, bg_tasks: BackgroundTasks):
+    body = await request.json()
+    session_id = body.get("session_id", "default")
+    
+    sdir = get_session_dir(session_id)
+    state = load_session_state(sdir)
+    
+    media_path = state.get("video_path") or state.get("audio_path")
+    if not media_path or not Path(media_path).exists():
+        return JSONResponse({"success": False, "error": "សូមបញ្ចូលវីដេអូ ឬសំឡេងជាមុនសិន!"}, status_code=400)
+        
+    bg_tasks.add_task(run_vocal_separation_worker, sdir, media_path, session_id)
+    return JSONResponse({"success": True, "message": "កំពុងចាប់ផ្តើមកាត់សំឡេងនិយាយចេញពីវីដេអូដើម..."})
+
+def run_vocal_separation_worker(sdir: Path, media_path: str, session_id: str):
+    prog = get_vocal_separation_state(session_id)
+    prog.update({
+        "is_running": True,
+        "percent": 5,
+        "message": "កំពុងចាប់ផ្តើម AI បំបែកសំឡេង...",
+        "has_bgm": False
+    })
+    
+    bgm_path = sdir / "bgm.mp3"
+    vocals_path = sdir / "vocals.mp3"
+    video_bgm_path = sdir / "video_bgm_only.mp4"
+    
+    def on_prog(pct, msg):
+        prog["percent"] = pct
+        prog["message"] = msg
+        
+    try:
+        success = separate_vocals_and_bgm(
+            input_media_path=media_path,
+            output_bgm_path=str(bgm_path),
+            output_vocals_path=str(vocals_path),
+            progress_callback=on_prog
+        )
+        
+        if success and bgm_path.exists():
+            state = load_session_state(sdir)
+            state["has_bgm"] = True
+            state["bgm_path"] = str(bgm_path)
+            state["vocals_path"] = str(vocals_path)
+            
+            # If original media is video, also generate video with clean BGM (no vocals)
+            vpath = state.get("video_path")
+            if vpath and Path(vpath).exists():
+                on_prog(96, "កំពុងបង្កើតវីដេអូ BGM សុទ្ធ...")
+                create_video_with_bgm_only(vpath, str(bgm_path), str(video_bgm_path))
+                
+            save_session_state(sdir, state)
+            
+            t = int(time.time())
+            prog.update({
+                "is_running": False,
+                "percent": 100,
+                "message": "កាត់សំឡេងនិយាយចេញ និងរក្សា BGM ជោគជ័យ ១០០%!",
+                "has_bgm": True,
+                "bgm_url": f"/api/media/bgm?session_id={session_id}&t={t}",
+                "vocals_url": f"/api/media/vocals?session_id={session_id}&t={t}",
+                "video_bgm_url": f"/api/media/video_bgm_only?session_id={session_id}&t={t}" if video_bgm_path.exists() else ""
+            })
+        else:
+            prog.update({
+                "is_running": False,
+                "message": "ការកាត់សំឡេងនិយាយបរាជ័យ",
+                "has_bgm": False
+            })
+    except Exception as e:
+        prog.update({
+            "is_running": False,
+            "message": f"កំហុស: {str(e)}",
+            "has_bgm": False
+        })
+        print(f"Vocal separation worker error: {traceback.format_exc()}")
+
+@app.get("/api/vocal_separation_progress")
+async def api_vocal_separation_progress(session_id: str = "default"):
+    sdir = get_session_dir(session_id)
+    prog = get_vocal_separation_state(session_id)
+    bgm_file = sdir / "bgm.mp3"
+    if bgm_file.exists() and not prog.get("is_running"):
+        prog["has_bgm"] = True
+        if not prog.get("bgm_url"):
+            t = int(time.time())
+            prog["bgm_url"] = f"/api/media/bgm?session_id={session_id}&t={t}"
+            prog["vocals_url"] = f"/api/media/vocals?session_id={session_id}&t={t}"
+            video_bgm_file = sdir / "video_bgm_only.mp4"
+            if video_bgm_file.exists():
+                prog["video_bgm_url"] = f"/api/media/video_bgm_only?session_id={session_id}&t={t}"
+    return JSONResponse(prog)
 
 @app.post("/api/generate_voice_single")
 async def api_generate_voice_single(request: Request):
@@ -585,6 +719,7 @@ async def api_render_video(request: Request, bg_tasks: BackgroundTasks):
     dub_vol = body.get("dub_volume", settings.get("dub_volume", 120))
     bg_vol = body.get("bg_volume", settings.get("bg_volume", 20))
     mute_orig = body.get("mute_original", settings.get("mute_original", False))
+    use_bgm_only = body.get("use_bgm_only", settings.get("use_bgm_only", True))
     burn_subs = body.get("burn_subtitles", settings.get("burn_subtitles", True))
     effects = body.get("effects", {})
     
@@ -595,14 +730,16 @@ async def api_render_video(request: Request, bg_tasks: BackgroundTasks):
     
     bg_tasks.add_task(
         run_render_worker, sdir, video_path, state,
-        dub_vol, bg_vol, mute_orig, burn_subs, effects, session_id
+        dub_vol, bg_vol, mute_orig, burn_subs, effects, session_id,
+        use_bgm_only
     )
     return JSONResponse({"success": True, "message": "កំពុងចាប់ផ្តើម Render វីដេអូ..."})
 
 def run_render_worker(
     sdir: Path, video_path: str, state: Dict[str, Any],
     dub_vol: int, bg_vol: int, mute_orig: bool, burn_subs: bool,
-    effects: Optional[Dict[str, Any]], session_id: str
+    effects: Optional[Dict[str, Any]], session_id: str,
+    use_bgm_only: bool = True
 ):
     prog = get_render_state(session_id)
     prog.update({
@@ -619,6 +756,22 @@ def run_render_worker(
     # Ensure master dub exists
     build_master_dub_track(subs, vdir, master_dub, state.get("duration", 0.0))
     
+    def on_prog(pct, msg):
+        prog["percent"] = pct
+        prog["message"] = msg
+        
+    # Handle clean BGM separation if requested
+    bgm_path_str = None
+    if use_bgm_only and not mute_orig:
+        bgm_file = sdir / "bgm.mp3"
+        if not bgm_file.exists():
+            on_prog(12, "កំពុងកាត់សំឡេងនិយាយពីវីដេអូដើមដើម្បីរក្សា BGM...")
+            separate_vocals_and_bgm(video_path, str(bgm_file), str(sdir / "vocals.mp3"), on_prog)
+        if bgm_file.exists():
+            bgm_path_str = str(bgm_file)
+            state["has_bgm"] = True
+            save_session_state(sdir, state)
+
     # Generate ASS subtitles for hardcode if enabled
     ass_path = None
     if burn_subs and subs:
@@ -627,10 +780,6 @@ def run_render_worker(
         
     out_video = sdir / "rendered_dubbed_video.mp4"
     
-    def on_prog(pct, msg):
-        prog["percent"] = pct
-        prog["message"] = msg
-        
     success = render_dubbed_video(
         video_path=video_path,
         master_dub_audio_path=str(master_dub) if master_dub.exists() else None,
@@ -641,7 +790,9 @@ def run_render_worker(
         mute_original=mute_orig,
         burn_subtitles=burn_subs,
         effects=effects,
-        progress_callback=on_prog
+        progress_callback=on_prog,
+        bgm_audio_path=bgm_path_str,
+        use_bgm_only=use_bgm_only
     )
     
     if success:
@@ -689,6 +840,18 @@ async def api_get_media(media_type: str, session_id: str = "default"):
         f = sdir / "master_dub.mp3"
         if f.exists():
             return FileResponse(str(f), media_type="audio/mp3", filename="master_dub.mp3")
+    elif media_type == "bgm":
+        f = sdir / "bgm.mp3"
+        if f.exists():
+            return FileResponse(str(f), media_type="audio/mp3", filename="clean_bgm.mp3")
+    elif media_type == "vocals":
+        f = sdir / "vocals.mp3"
+        if f.exists():
+            return FileResponse(str(f), media_type="audio/mp3", filename="isolated_vocals.mp3")
+    elif media_type == "video_bgm_only":
+        f = sdir / "video_bgm_only.mp4"
+        if f.exists():
+            return FileResponse(str(f), media_type="video/mp4", filename="video_bgm_only.mp4")
     elif media_type == "rendered_video":
         f = sdir / "rendered_dubbed_video.mp4"
         if f.exists():

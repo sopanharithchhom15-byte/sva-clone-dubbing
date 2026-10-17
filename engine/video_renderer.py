@@ -217,11 +217,13 @@ def render_dubbed_video(
     mute_original: bool = False,
     burn_subtitles: bool = True,
     effects: Optional[Dict[str, Any]] = None,
-    progress_callback = None
+    progress_callback = None,
+    bgm_audio_path: Optional[str] = None,
+    use_bgm_only: bool = True
 ) -> bool:
     """
     Renders the final dubbed video using FFmpeg:
-    - Mixes dubbed voice and original audio/BGM
+    - Mixes dubbed voice and original audio or separated BGM (vocals removed)
     - Hardcodes styled subtitles if requested
     - Applies video effects: Blur, Flip, Add Text, Add Logo
     """
@@ -239,6 +241,14 @@ def render_dubbed_video(
         if has_dub:
             cmd.extend(["-i", master_dub_audio_path])
             dub_input_idx = next_input_idx
+            next_input_idx += 1
+
+        # Check clean BGM input (speech removed)
+        bgm_input_idx = None
+        has_clean_bgm = bool(use_bgm_only and bgm_audio_path and os.path.exists(bgm_audio_path))
+        if has_clean_bgm:
+            cmd.extend(["-i", str(bgm_audio_path)])
+            bgm_input_idx = next_input_idx
             next_input_idx += 1
 
         # Check logo overlay input
@@ -259,21 +269,36 @@ def render_dubbed_video(
         audio_map = None
         
         if has_dub:
-            if mute_original or not orig_has_audio:
+            if mute_original:
                 # Use only dubbed audio
                 filter_complex.append(f"[{dub_input_idx}:a]volume={dub_vol}[aout]")
                 audio_map = "[aout]"
-            else:
-                # Mix original audio with dubbed speech
+            elif bgm_input_idx is not None:
+                # Mix isolated BGM track (speech removed from original video) with dubbed speech
+                filter_complex.append(
+                    f"[{bgm_input_idx}:a]volume={bg_vol}[abgm];"
+                    f"[{dub_input_idx}:a]volume={dub_vol}[adub];"
+                    f"[adub][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                )
+                audio_map = "[aout]"
+            elif orig_has_audio:
+                # Mix original raw audio with dubbed speech
                 filter_complex.append(
                     f"[0:a]volume={bg_vol}[aorig];"
                     f"[{dub_input_idx}:a]volume={dub_vol}[adub];"
                     f"[adub][aorig]amix=inputs=2:duration=first:dropout_transition=2[aout]"
                 )
                 audio_map = "[aout]"
-        elif orig_has_audio:
-            filter_complex.append("[0:a]volume=1.0[aout]")
-            audio_map = "[aout]"
+            else:
+                filter_complex.append(f"[{dub_input_idx}:a]volume={dub_vol}[aout]")
+                audio_map = "[aout]"
+        elif not mute_original:
+            if bgm_input_idx is not None:
+                filter_complex.append(f"[{bgm_input_idx}:a]volume={bg_vol}[aout]")
+                audio_map = "[aout]"
+            elif orig_has_audio:
+                filter_complex.append("[0:a]volume=1.0[aout]")
+                audio_map = "[aout]"
             
         # Video filters chain
         curr_v = "0:v"
@@ -409,7 +434,9 @@ def render_dubbed_video(
                     mute_original=mute_original,
                     burn_subtitles=False,
                     effects=effects,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback,
+                    bgm_audio_path=bgm_audio_path,
+                    use_bgm_only=use_bgm_only
                 )
             return False
             

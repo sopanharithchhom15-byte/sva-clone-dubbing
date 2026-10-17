@@ -45,18 +45,270 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadVoices();
   await loadSessionState();
   initDragAndDrop();
+  updateWorkflowStepper();
 });
 
-// Tab Switcher
+// Modern Animated Toast Notification Engine
+function showToast(message, type = "info", duration = 3800) {
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-stack-container";
+    document.body.appendChild(container);
+  }
+  
+  const toast = document.createElement("div");
+  toast.className = `toast-pill toast-${type}`;
+  
+  let icon = "ℹ️";
+  if (type === "success") icon = "✅";
+  else if (type === "error") icon = "❌";
+  else if (type === "warning") icon = "⚠️";
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <span class="toast-text">${message}</span>
+    <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(50px) scale(0.9)";
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 350);
+  }, duration);
+}
+
+function showToastNotification(msg) {
+  showToast(msg, "success");
+}
+
+// 4-Step Stepper Wizard & Floating Guide Manager
+let gNextStepTarget = null;
+
+function updateWorkflowStepper() {
+  const hasMedia = document.getElementById("videoPreviewWrap") && 
+                    document.getElementById("videoPreviewWrap").style.display !== "none";
+  const subCount = gSubtitles ? gSubtitles.length : 0;
+  const hasSub = subCount > 0;
+  const voicedCount = hasSub ? gSubtitles.filter(s => s.has_audio).length : 0;
+  const hasVoice = hasSub && voicedCount > 0;
+  const isAllVoiced = hasSub && (voicedCount === subCount);
+  const hasRender = document.getElementById("renderedResultWrap") && 
+                    document.getElementById("renderedResultWrap").style.display !== "none";
+
+  // Step 1: Media
+  const step1 = document.getElementById("stepIndicator1");
+  const badge1 = document.getElementById("stepBadgeMedia");
+  const conn1 = document.getElementById("connector1");
+  if (step1 && badge1) {
+    if (hasMedia) {
+      step1.classList.add("completed");
+      badge1.innerText = "✅ វីដេអូរួចរាល់";
+      if (conn1) conn1.classList.add("active");
+    } else {
+      step1.classList.remove("completed");
+      badge1.innerText = "⏳ រង់ចាំវីដេអូ";
+      if (conn1) conn1.classList.remove("active");
+    }
+  }
+
+  // Step 2: Subtitle
+  const step2 = document.getElementById("stepIndicator2");
+  const badge2 = document.getElementById("stepBadgeSub");
+  const conn2 = document.getElementById("connector2");
+  if (step2 && badge2) {
+    if (hasSub) {
+      step2.classList.add("completed");
+      badge2.innerText = `✅ ${subCount} បន្ទាត់`;
+      if (conn2) conn2.classList.add("active");
+    } else {
+      step2.classList.remove("completed");
+      badge2.innerText = "⏳ មិនទាន់មាន";
+      if (conn2) conn2.classList.remove("active");
+    }
+  }
+
+  // Step 3: Voice
+  const step3 = document.getElementById("stepIndicator3");
+  const badge3 = document.getElementById("stepBadgeVoice");
+  const conn3 = document.getElementById("connector3");
+  if (step3 && badge3) {
+    if (isAllVoiced) {
+      step3.classList.add("completed");
+      badge3.innerText = `✅ សំឡេងរួចរាល់ (${voicedCount}/${subCount})`;
+      if (conn3) conn3.classList.add("active");
+    } else if (hasVoice) {
+      step3.classList.remove("completed");
+      step3.classList.add("active");
+      badge3.innerText = `⚡ ${voicedCount}/${subCount} បន្ទាត់`;
+      if (conn3) conn3.classList.remove("active");
+    } else {
+      step3.classList.remove("completed");
+      badge3.innerText = "⏳ មិនទាន់បង្កើត";
+      if (conn3) conn3.classList.remove("active");
+    }
+  }
+
+  // Step 4: Render
+  const step4 = document.getElementById("stepIndicator4");
+  const badge4 = document.getElementById("stepBadgeRender");
+  if (step4 && badge4) {
+    if (hasRender) {
+      step4.classList.add("completed");
+      badge4.innerText = "🎉 វីដេអូសម្រេច";
+    } else {
+      step4.classList.remove("completed");
+      badge4.innerText = isAllVoiced ? "✨ រួចរាល់ Render" : "⏳ រង់ចាំ";
+    }
+  }
+
+  // Floating Action Next-Step Guide Bar
+  const guideBar = document.getElementById("floatingNextGuide");
+  const guideIcon = document.getElementById("floatingGuideIcon");
+  const guideText = document.getElementById("floatingGuideText");
+
+  if (guideBar && guideIcon && guideText) {
+    if (!hasMedia) {
+      guideBar.style.display = "flex";
+      guideIcon.innerText = "🎥";
+      guideText.innerText = "ជំហានទី ១៖ សូម Upload វីដេអូ ឬសម្លេងដើម្បីចាប់ផ្តើម";
+      gNextStepTarget = () => {
+        switchTab("tabSubtitles");
+        triggerVideoFileInput();
+      };
+    } else if (!hasSub) {
+      guideBar.style.display = "flex";
+      guideIcon.innerText = "📝";
+      guideText.innerText = "ជំហានទី ២៖ សូមបញ្ចូល ឬ Import Subtitle SRT";
+      gNextStepTarget = () => {
+        switchTab("tabSubtitles");
+        const srtInput = document.getElementById("srtFileInput");
+        if (srtInput) srtInput.click();
+      };
+    } else if (!isAllVoiced) {
+      guideBar.style.display = "flex";
+      guideIcon.innerText = "🎙️";
+      guideText.innerText = `ជំហានទី ៣៖ បង្កើតសំឡេងក្លូន (${voicedCount}/${subCount} រួចរាល់) →`;
+      gNextStepTarget = () => {
+        switchTab("tabVoice");
+        const btnAll = document.querySelector("button[onclick*='startBatchTts']");
+        if (btnAll) btnAll.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+    } else if (!hasRender) {
+      guideBar.style.display = "flex";
+      guideIcon.innerText = "🎬";
+      guideText.innerText = "ជំហានទី ៤៖ សំឡេងរួចរាល់ ១០០%! ចុចដើម្បី Render វីដេអូ →";
+      gNextStepTarget = () => {
+        switchTab("tabRender");
+        const btnRender = document.querySelector("button[onclick*='startRenderProcess']");
+        if (btnRender) btnRender.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+    } else {
+      guideBar.style.display = "none";
+      gNextStepTarget = null;
+    }
+  }
+}
+
+function triggerNextStepAction() {
+  if (typeof gNextStepTarget === "function") {
+    gNextStepTarget();
+  }
+}
+
+// Celebration Confetti (60fps canvas particles)
+function fireCelebrationConfetti() {
+  const canvas = document.getElementById("confettiCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = "block";
+  canvas.style.opacity = "1";
+
+  const confettiPieces = [];
+  const colors = ["#38bdf8", "#818cf8", "#10b981", "#f59e0b", "#ec4899", "#a855f7", "#ffffff"];
+
+  for (let i = 0; i < 110; i++) {
+    confettiPieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height * 0.4,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speedY: Math.random() * 4 + 2.5,
+      speedX: (Math.random() - 0.5) * 3,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 8
+    });
+  }
+
+  const startTime = Date.now();
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const elapsed = Date.now() - startTime;
+
+    confettiPieces.forEach(p => {
+      p.y += p.speedY;
+      p.x += p.speedX;
+      p.rotation += p.rotationSpeed;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    });
+
+    if (elapsed < 4000) {
+      requestAnimationFrame(animate);
+    } else {
+      canvas.style.transition = "opacity 0.6s ease";
+      canvas.style.opacity = "0";
+      setTimeout(() => {
+        canvas.style.display = "none";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 600);
+    }
+  }
+
+  animate();
+}
+
+// Tab Switcher with entrance animation and stepper sync
 function switchTab(tabId) {
   document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
   document.querySelectorAll(".nav-tab").forEach(el => el.classList.remove("active"));
   
   const target = document.getElementById(tabId);
-  if (target) target.classList.add("active");
+  if (target) {
+    target.classList.add("active");
+    target.style.animation = 'none';
+    target.offsetHeight; // trigger reflow
+    target.style.animation = 'tabEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+  }
   
   const btn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
   if (btn) btn.classList.add("active");
+  
+  // Highlight corresponding stepper step
+  document.querySelectorAll(".step-item").forEach(s => s.classList.remove("active"));
+  if (tabId === "tabSubtitles") {
+    const s1 = document.getElementById("stepIndicator1");
+    const s2 = document.getElementById("stepIndicator2");
+    if (s1 && !s1.classList.contains("completed")) s1.classList.add("active");
+    else if (s2) s2.classList.add("active");
+  } else if (tabId === "tabVoice") {
+    const s3 = document.getElementById("stepIndicator3");
+    if (s3) s3.classList.add("active");
+  } else if (tabId === "tabRender") {
+    const s4 = document.getElementById("stepIndicator4");
+    if (s4) s4.classList.add("active");
+  }
   
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -690,6 +942,17 @@ async function loadSessionState() {
         const resWrap = document.getElementById("renderedResultWrap");
         if (resWrap) resWrap.style.display = "block";
       }
+
+      // Master Dub Card in Voice Tab
+      const masterCard = document.getElementById("masterAudioCard");
+      const masterPlayer = document.getElementById("masterDubAudioPlayer");
+      const masterDownload = document.getElementById("btnDownloadMasterDub");
+      if (masterCard && masterPlayer && masterDownload) {
+        const aUrl = `/api/media/master_dub?session_id=${gSessionId}&t=${Date.now()}`;
+        masterPlayer.src = aUrl;
+        masterDownload.href = aUrl;
+        masterCard.style.display = "block";
+      }
     }
 
     if (state.has_bgm) {
@@ -700,6 +963,8 @@ async function loadSessionState() {
         video_bgm_url: state.video_bgm_url
       });
     }
+
+    updateWorkflowStepper();
   } catch (e) {
     console.error("Error loading session:", e);
   }
@@ -792,30 +1057,31 @@ function handleVideoUpload(input) {
           const previewWrap = document.getElementById("videoPreviewWrap");
           if (previewWrap) previewWrap.style.display = "block";
           
-          showToastNotification("✅ Upload វីដេអូជោគជ័យ!");
+          showToast("✅ Upload វីដេអូជោគជ័យ!", "success");
           resetVocalSepUI();
+          updateWorkflowStepper();
           
           setTimeout(() => {
             if (progressWrap) progressWrap.style.display = "none";
           }, 2000);
         } else {
           if (progressWrap) progressWrap.style.display = "none";
-          alert("❌ " + (data.error || "បរាជ័យក្នុងការ Upload"));
+          showToast("❌ " + (data.error || "បរាជ័យក្នុងការ Upload"), "error");
           if (fileNameEl) fileNameEl.innerText = "ជ្រើសរើសវីដេអូ (MP4 / MKV)";
         }
       } catch (err) {
         if (progressWrap) progressWrap.style.display = "none";
-        alert("❌ កំហុសឆ្លើយតបពី Server: " + err.message);
+        showToast("❌ កំហុសឆ្លើយតបពី Server: " + err.message, "error");
         if (fileNameEl) fileNameEl.innerText = "ជ្រើសរើសវីដេអូ (MP4 / MKV)";
       }
     } else {
       if (progressWrap) progressWrap.style.display = "none";
       if (xhr.status === 413) {
-        alert("⚠️ ទំហំវីដេអូធំជាង 100MB (Cloudflare Limit)។ សូម Upload វីដេអូក្រោម 100MB ឬប្រើប្រាស់តាម WiFi IP!");
+        showToast("⚠️ ទំហំវីដេអូធំជាង 100MB (Cloudflare Limit)។ សូម Upload វីដេអូក្រោម 100MB ឬប្រើប្រាស់តាម WiFi IP!", "warning", 6000);
       } else if (xhr.status === 502 || xhr.status === 530) {
-        alert("⚠️ តំណភ្ជាប់ Tunnel ចាស់បានផុតកំណត់ដោយសារ Server បាន Restart។ សូម Refresh ទំព័រឡើងវិញ ឬបើកតាម Link ថ្មី!");
+        showToast("⚠️ តំណភ្ជាប់ Tunnel ចាស់បានផុតកំណត់ដោយសារ Server បាន Restart។ សូម Refresh ទំព័រឡើងវិញ!", "warning", 6000);
       } else {
-        alert(`❌ Server error: Status ${xhr.status}`);
+        showToast(`❌ Server error: Status ${xhr.status}`, "error");
       }
       if (fileNameEl) fileNameEl.innerText = "ជ្រើសរើសវីដេអូ (MP4 / MKV)";
     }
@@ -826,7 +1092,7 @@ function handleVideoUpload(input) {
     if (uploadBox) uploadBox.classList.remove("is-uploading");
     if (uploadIcon) uploadIcon.innerHTML = "🎥";
     if (progressWrap) progressWrap.style.display = "none";
-    alert("❌ បរាជ័យក្នុងការតភ្ជាប់បណ្តាញពេល Upload វីដេអូ!");
+    showToast("❌ បរាជ័យក្នុងការតភ្ជាប់បណ្តាញពេល Upload វីដេអូ!", "error");
     if (fileNameEl) fileNameEl.innerText = "ជ្រើសរើសវីដេអូ (MP4 / MKV)";
     input.value = "";
   };
@@ -858,12 +1124,13 @@ async function handleSrtUpload(input) {
     if (data.success) {
       gSubtitles = data.subtitles;
       renderSubtitles();
-      alert(`✅ បានបញ្ចូល Subtitle ចំនួន ${data.count} បន្ទាត់!`);
+      showToast(`✅ បានបញ្ចូល Subtitle ចំនួន ${data.count} បន្ទាត់!`, "success");
+      updateWorkflowStepper();
     } else {
-      alert("❌ " + (data.error || "បរាជ័យ"));
+      showToast("❌ " + (data.error || "បរាជ័យ"), "error");
     }
   } catch (e) {
-    alert("❌ កំហុសបញ្ចូល SRT: " + e.message);
+    showToast("❌ កំហុសបញ្ចូល SRT: " + e.message, "error");
   }
 }
 
@@ -1010,6 +1277,7 @@ function renderSubtitles() {
         <span>សូមបញ្ចូលវីដេអូ រួចចុច "AI Transcribe" ឬចុច "បិទភ្ជាប់ Raw Text"</span>
       </div>
     `;
+    updateWorkflowStepper();
     return;
   }
   
@@ -1060,6 +1328,7 @@ function renderSubtitles() {
     `;
     container.appendChild(card);
   });
+  updateWorkflowStepper();
 }
 
 function updateSubText(idx, val) {
@@ -1152,12 +1421,14 @@ async function generateSingleVoice(idx) {
       gSubtitles[idx].has_audio = true;
       renderSubtitles();
       playVoiceAudio(idx);
+      showToast(`✅ បង្កើតសំឡេងបន្ទាត់ #${idx + 1} ជោគជ័យ!`, "success");
+      updateWorkflowStepper();
     } else {
-      alert("❌ បរាជ័យ: " + (data.error || "Unknown error"));
+      showToast("❌ បរាជ័យ: " + (data.error || "Unknown error"), "error");
       renderSubtitles();
     }
   } catch (e) {
-    alert("កំហុស: " + e.message);
+    showToast("កំហុស: " + e.message, "error");
     renderSubtitles();
   }
 }
@@ -1250,6 +1521,8 @@ async function startBatchTts(force = false) {
         if (!pData.is_running) {
           clearInterval(pollInterval);
           await loadSessionState();
+          showToast("🎉 បង្កើតសំឡេងក្លូនរួចរាល់ទាំងអស់!", "success", 4500);
+          updateWorkflowStepper();
           setTimeout(() => { progressWrap.style.display = "none"; }, 3500);
         }
       } catch (err) {
@@ -1260,9 +1533,9 @@ async function startBatchTts(force = false) {
   } catch (e) {
     const msg = e.message || String(e);
     if (msg.includes("pattern") || msg.includes("token") || msg.includes("JSON") || msg.includes("SyntaxError")) {
-      alert("⚠️ តំណភ្ជាប់ Public Link បានផុតកំណត់ហើយ! សូមប្រើប្រាស់តំណភ្ជាប់ Public Link ថ្មីចុងក្រោយ ឬ Refresh ទំព័រឡើងវិញ។");
+      showToast("⚠️ តំណភ្ជាប់ Public Link បានផុតកំណត់ហើយ! សូម Refresh ទំព័រឡើងវិញ។", "warning", 6000);
     } else {
-      alert("កំហុស: " + msg);
+      showToast("កំហុស: " + msg, "error");
     }
     progressWrap.style.display = "none";
   }
@@ -1479,7 +1752,24 @@ async function startRenderVideo() {
             document.getElementById("btnDownloadAudio").href = pData.audio_url;
             
             document.getElementById("renderedResultWrap").style.display = "block";
+            
+            // Sync Master Dub Card in Voice Tab
+            const masterCard = document.getElementById("masterAudioCard");
+            const masterPlayer = document.getElementById("masterDubAudioPlayer");
+            const masterDownload = document.getElementById("btnDownloadMasterDub");
+            if (masterCard && masterPlayer && masterDownload) {
+              masterPlayer.src = pData.audio_url;
+              masterDownload.href = pData.audio_url;
+              masterCard.style.display = "block";
+            }
+            
+            fireCelebrationConfetti();
+            showToast("🎉 រួចរាល់ ១០០%! វីដេអូ Dubbing របស់អ្នកត្រូវបាន Render ជោគជ័យ!", "success", 6500);
+            updateWorkflowStepper();
+            
             vPlayer.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            showToast("❌ ការ Render មិនបានសម្រេច៖ " + (pData.message || "Unknown error"), "error");
           }
         }
       } catch (err) {
@@ -1490,9 +1780,9 @@ async function startRenderVideo() {
   } catch (e) {
     const msg = e.message || String(e);
     if (msg.includes("pattern") || msg.includes("token") || msg.includes("JSON") || msg.includes("SyntaxError")) {
-      alert("⚠️ តំណភ្ជាប់ Public Link បានផុតកំណត់ហើយ! សូមប្រើប្រាស់តំណភ្ជាប់ Public Link ថ្មីចុងក្រោយ ឬ Refresh ទំព័រឡើងវិញ។");
+      showToast("⚠️ តំណភ្ជាប់ Public Link បានផុតកំណត់ហើយ! សូម Refresh ទំព័រឡើងវិញ។", "warning", 6000);
     } else {
-      alert("❌ " + msg);
+      showToast("❌ " + msg, "error");
     }
     progressWrap.style.display = "none";
   }
@@ -1586,21 +1876,6 @@ function fallbackCopyPrompt(text) {
   }
 }
 
-function showToastNotification(msg) {
-  let toast = document.getElementById("appToastNotification");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "appToastNotification";
-    toast.className = "app-floating-toast";
-    document.body.appendChild(toast);
-  }
-  toast.innerText = msg;
-  toast.classList.add("show");
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2800);
-}
 
 // ==========================================
 // 11. AI Vocal Remover & BGM Functions

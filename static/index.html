@@ -39,6 +39,54 @@
     </div>
   </header>
 
+  <!-- Interactive Stepper Wizard Navigation -->
+  <section class="workflow-stepper-container">
+    <div class="workflow-stepper">
+      <div class="step-item active" id="stepIndicator1" onclick="switchTab('tabSubtitles')">
+        <div class="step-circle" id="stepCircle1">
+          <span class="step-num">1</span>
+        </div>
+        <div class="step-details">
+          <span class="step-title">🎥 វីដេអូដើម</span>
+          <span class="step-status" id="stepBadgeMedia">⏳ រង់ចាំវីដេអូ</span>
+        </div>
+      </div>
+      <div class="step-connector" id="connector1"></div>
+
+      <div class="step-item" id="stepIndicator2" onclick="switchTab('tabSubtitles')">
+        <div class="step-circle" id="stepCircle2">
+          <span class="step-num">2</span>
+        </div>
+        <div class="step-details">
+          <span class="step-title">📝 Subtitle</span>
+          <span class="step-status" id="stepBadgeSub">⏳ មិនទាន់មាន</span>
+        </div>
+      </div>
+      <div class="step-connector" id="connector2"></div>
+
+      <div class="step-item" id="stepIndicator3" onclick="switchTab('tabVoice')">
+        <div class="step-circle" id="stepCircle3">
+          <span class="step-num">3</span>
+        </div>
+        <div class="step-details">
+          <span class="step-title">🎙️ ក្លូនសំឡេង</span>
+          <span class="step-status" id="stepBadgeVoice">⏳ មិនទាន់បង្កើត</span>
+        </div>
+      </div>
+      <div class="step-connector" id="connector3"></div>
+
+      <div class="step-item" id="stepIndicator4" onclick="switchTab('tabRender')">
+        <div class="step-circle" id="stepCircle4">
+          <span class="step-num">4</span>
+        </div>
+        <div class="step-details">
+          <span class="step-title">🎬 Render</span>
+          <span class="step-status" id="stepBadgeRender">⏳ រង់ចាំ</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Mobile App Tabs Navigation -->
   <nav class="app-nav">
     <button class="nav-tab active" data-tab="tabSubtitles" onclick="switchTab('tabSubtitles')">
@@ -118,6 +166,9 @@
               <button class="btn btn-prompt" onclick="openPromptModal()" title="យក Prompt សម្រាប់បញ្ជា AI បកប្រែ">
                 💡 យក Prompt បកប្រែ
               </button>
+              <button class="btn btn-secondary" onclick="scrollToVocalSeparator()" title="កាត់សំឡេងនិយាយពីវីដេអូដើម និងរក្សា BGM">
+                ✂️ កាត់សំឡេងនិយាយ (BGM)
+              </button>
             </div>
           </div>
 
@@ -134,6 +185,73 @@
             </div>
             <div class="progress-bar-bg">
               <div id="transcribeProgressBar" class="progress-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Vocal Remover & BGM Card -->
+      <div class="card glass-card" id="vocalSeparatorCard">
+        <div class="card-header space-between">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h2>✂️ កាត់សំឡេងនិយាយចេញពីវីដេអូដើម (AI Vocal Remover & BGM)</h2>
+            <span class="badge-edge-clean">Demucs AI</span>
+          </div>
+          <span id="vocalSepCardBadge" class="badge-tag">រួចរាល់</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+            💡 បច្ចេកវិទ្យា AI ជួយ<strong>បំបែកសំឡេងមនុស្សនិយាយចេញពីវីដេអូ</strong> និង<strong>រក្សាទុកភ្លេងកំដរ BGM & សំឡេង Effect (SFX) ឱ្យនៅដដែល ១០០%</strong>។ ស័ក្តិសមបំផុតសម្រាប់កាត់ត សម្រាយរឿង និង Dubbing ដោយមិនឱ្យជាន់សំឡេងដើម!
+          </p>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom: 12px;">
+            <button class="btn btn-primary" id="btnStartVocalSep" onclick="startVocalSeparation()">
+              ✂️ ចាប់ផ្តើមកាត់សំឡេងនិយាយ (បំបែកយក BGM & Vocals)
+            </button>
+          </div>
+
+          <!-- Vocal Separation Progress Banner -->
+          <div id="vocalSepProgressWrap" class="progress-banner" style="display:none; margin-bottom: 14px;">
+            <div class="progress-info">
+              <span id="vocalSepProgressMsg"><span class="spinner-inline"></span> កំពុងកាត់សំឡេងនិយាយចេញ...</span>
+              <span id="vocalSepProgressPct">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="vocalSepProgressBar" class="progress-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Separation Results Container -->
+          <div id="vocalSepResultWrap" class="result-box" style="display:none; margin-top: 10px;">
+            <h3 style="font-size: 0.95rem; color: var(--success-color); margin-bottom: 12px; display:flex; align-items:center; gap:6px;">
+              ✅ បំបែកសំឡេងជោគជ័យ!
+            </h3>
+
+            <!-- 1. BGM Audio Player -->
+            <div class="vocal-track-item" style="background: rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                <strong style="color:var(--accent-color); font-size: 0.88rem;">🎵 តន្ត្រី BGM សុទ្ធ (គ្មានសំឡេងមនុស្សនិយាយ)</strong>
+                <a id="linkDownloadBgm" class="btn btn-sm btn-secondary" href="#" download="clean_bgm.mp3">📥 ទាញយក BGM (MP3)</a>
+              </div>
+              <audio id="playerBgmAudio" controls playsinline style="width:100%; height:36px; margin-top:4px;"></audio>
+            </div>
+
+            <!-- 2. Isolated Vocals Audio Player -->
+            <div class="vocal-track-item" style="background: rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                <strong style="color:var(--text-color); font-size: 0.88rem;">🎙️ សំឡេងមនុស្សនិយាយដែលកាត់ចេញ (Isolated Vocals)</strong>
+                <a id="linkDownloadVocals" class="btn btn-sm btn-secondary" href="#" download="isolated_vocals.mp3">📥 ទាញយក Vocals (MP3)</a>
+              </div>
+              <audio id="playerVocalsAudio" controls playsinline style="width:100%; height:36px; margin-top:4px;"></audio>
+            </div>
+
+            <!-- 3. Export Clean Video with BGM Only -->
+            <div id="videoBgmWrap" style="background: rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <strong style="color:var(--accent-color); font-size: 0.88rem;">🎬 វីដេអូដើម + BGM សុទ្ធ (គ្មានសំឡេងនិយាយ)</strong>
+                <div style="font-size:0.78rem; color:var(--text-muted);">វីដេអូដើមដែលដកសំឡេងនិយាយចេញ រក្សាតែរូបភាព និង BGM</div>
+              </div>
+              <a id="linkDownloadVideoBgm" class="btn btn-sm btn-primary" href="#" download="video_bgm_only.mp4">📥 ទាញយកវីដេអូ MP4</a>
             </div>
           </div>
         </div>
@@ -206,6 +324,26 @@
               <div id="ttsProgressBar" class="progress-bar-fill" style="width:0%"></div>
             </div>
           </div>
+
+          <!-- Master Dub Audio Track Ready Card -->
+          <div id="masterAudioCard" class="master-audio-box" style="display:none; margin-top:16px; padding:14px 16px; background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.35); border-radius:var(--radius-md); box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div>
+                <strong style="color:var(--accent-color); font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+                  🎵 សំឡេង Master Dub MP3 (សំឡេងបញ្ចូលរួចរាល់)
+                </strong>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+                  សំឡេងនិយាយតួអង្គទាំងអស់ត្រូវបានផ្គុំបញ្ចូលគ្នាតាមនាទី Subtitle ១០០%
+                </p>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <audio id="masterAudioPlayer" controls style="height:36px; max-width:220px; border-radius:20px;"></audio>
+                <a id="btnDownloadMasterAudio" href="#" download="master_dub.mp3" class="btn btn-sm btn-primary" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                  📥 ទាញយក MP3
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -243,7 +381,7 @@
 
           <div class="checkbox-group">
             <label class="custom-checkbox">
-              <input type="checkbox" id="checkMuteOrig">
+              <input type="checkbox" id="checkMuteOrig" onchange="handleMuteOrigChange(this.checked)">
               <span>🔇 បិទសំឡេងដើមទាំងស្រុង (Mute Original Audio)</span>
             </label>
             <label class="custom-checkbox">
@@ -252,11 +390,31 @@
             </label>
           </div>
 
+          <!-- BGM Clean Track Control -->
+          <div class="setting-item" style="margin-top: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-sm); padding: 12px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+              <strong style="color:var(--accent-color); font-size: 0.9rem; display:flex; align-items:center; gap:6px;">
+                🎵 សំឡេងតន្ត្រីកំដរ (BGM Audio Track)
+              </strong>
+              <span id="renderBgmStatusBadge" class="badge-tag">ℹ️ មិនទាន់កាត់ BGM</span>
+            </div>
+            <label class="custom-checkbox">
+              <input type="checkbox" id="checkUseBgmOnly" checked>
+              <span>✨ <strong>ប្រើតែ BGM សុទ្ធ (កាត់សំឡេងនិយាយពីវីដេអូដើមចោល)</strong></span>
+            </label>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-left: 26px; margin-top: 4px; line-height: 1.4;">
+              រក្សាតន្ត្រីកំដរ BGM និង Sound Effects ឱ្យនៅដដែល ដោយលុបសំឡេងមនុស្សនិយាយដើមចេញពីវីដេអូ ដើម្បីកុំឱ្យជាន់សំឡេងគ្នាជាមួយ AI Dubbing (ប្រសិនបើមិនទាន់កាត់ ប្រព័ន្ធនឹងកាត់ស្វ័យប្រវត្តិនឹងពេល Render)។
+            </p>
+          </div>
+
           <!-- Video Effects Section (Blur, Flip, Add Text, Add Logo) -->
           <div class="effects-container">
             <div class="effects-section-title">
               <span>✨ បន្ថែម Effect លើវីដេអូ (Video Effects)</span>
               <span class="badge-edge-clean">Blur • Flip • Text • Logo</span>
+            </div>
+            <div class="effects-hint-banner" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 0.82rem; line-height: 1.5; color: var(--text-muted);">
+              💡 <strong style="color:var(--accent-color);">របៀបដំណើរការ៖</strong> Effect ទាំងនេះ (Flip, Blur, Text, Logo) មិនបង្ហាញលើវីដេអូដើមខាងលើទេ ដោយសារវាប្រើប្រព័ន្ធ FFmpeg ដុតចូលសាច់វីដេអូ។ <strong>វានឹងលោតបង្ហាញក្នុង «វីដេអូចុងក្រោយ» បន្ទាប់ពីចុចប៊ូតុង "🎬 ចាប់ផ្តើម Render វីដេអូពេញលេញ"</strong> ខាងក្រោមរួចរាល់ ១០០%!
             </div>
 
             <div class="effects-grid">
@@ -700,6 +858,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Floating Next-Step Action Guide Button (Mobile & Desktop) -->
+  <div id="floatingNextGuide" class="floating-guide-bar" style="display:none;" onclick="triggerNextStepAction()">
+    <span class="floating-guide-icon" id="floatingGuideIcon">👉</span>
+    <span class="floating-guide-text" id="floatingGuideText">បន្តទៅកាន់ជំហានបន្ទាប់</span>
+    <span class="floating-guide-arrow">➔</span>
+  </div>
+
+  <!-- Modern Animated Toast Notifications Stack -->
+  <div id="toastContainer" class="toast-stack-container"></div>
+
+  <!-- Celebration Confetti Canvas for 100% Video Render -->
+  <canvas id="confettiCanvas"></canvas>
 
   <!-- Audio Player Elements for Preview -->
   <audio id="globalAudioPlayer" style="display:none;"></audio>
