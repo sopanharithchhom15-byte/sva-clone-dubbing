@@ -9,9 +9,11 @@
   <meta name="apple-mobile-web-app-title" content="SVA Dubbing">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0f172a">
-  <link rel="manifest" href="/static/manifest.json">
-  <link rel="apple-touch-icon" href="/static/icon.svg">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" sizes="192x192" href="/static/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <link rel="shortcut icon" href="/static/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -29,6 +31,9 @@
       </div>
     </div>
     <div class="header-right">
+      <button class="btn-install-pill" id="btnInstallApp" onclick="triggerPwaInstall()" style="display:none;" title="ដំឡើងជា App លើទូរស័ព្ទ / PC">
+        📲 <span class="hide-mobile">ដំឡើង App</span>
+      </button>
       <button class="btn-refresh-pill" id="btnAppRefresh" onclick="refreshAppData()" title="Refresh / ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ">
         <span class="refresh-icon">🔄</span> <span class="hide-mobile">Refresh</span>
       </button>
@@ -862,6 +867,61 @@
         <button class="btn btn-primary" id="btnCopyPromptModal" onclick="copyPromptText()">
           📋 ចម្លង Prompt ទាំងអស់ (Copy Prompt)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Install Native Mobile / Desktop App Guide -->
+  <div id="installGuideModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" style="max-width:480px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.4rem;">📲</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem;">របៀបដំឡើងជា App លើទូរស័ព្ទ & PC</h3>
+            <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">ប្រើប្រាស់ពេញអេក្រង់ដូចកម្មវិធីទូរស័ព្ទពិតៗ ១០០%</p>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeInstallGuideModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:16px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <!-- Android -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="font-size:1.2rem;">🤖</span>
+              <strong style="color:var(--accent-color);">ទូរស័ព្ទ Android (Chrome / Samsung)</strong>
+            </div>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin:0; line-height:1.5;">
+              ចុចប៊ូតុង Menu <strong>⋮</strong> នៅខាងលើស្តាំដៃ ➔ ជ្រើសរើស <strong>"Install app"</strong> ឬ <strong>"Add to Home screen (បន្ថែមទៅអេក្រង់ដើម)"</strong>។
+            </p>
+          </div>
+
+          <!-- iOS / iPhone / iPad -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="font-size:1.2rem;">🍎</span>
+              <strong style="color:#f472b6;">ទូរស័ព្ទ iPhone & iPad (Safari)</strong>
+            </div>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin:0; line-height:1.5;">
+              ចុចប៊ូតុង Share <strong>📤</strong> នៅខាងក្រោម ➔ អូសចុះក្រោមជ្រើសរើស <strong>"Add to Home Screen (➕ ដាក់លើអេក្រង់ដើម)"</strong>។
+            </p>
+          </div>
+
+          <!-- PC -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="font-size:1.2rem;">💻</span>
+              <strong style="color:#10b981;">កុំព្យូទ័រ PC / Laptop (Windows)</strong>
+            </div>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin:0; line-height:1.5;">
+              ចុចពីរដងលើ <strong>START_PC_APP.bat</strong> ឬ <strong>Shortcut លើ Desktop</strong> ដើម្បីបើកជាផ្ទាំងកម្មវិធី Software ដាច់ដោយឡែកភ្លាមៗ!
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn btn-primary" style="min-width:140px;" onclick="closeInstallGuideModal()">យល់ព្រម</button>
       </div>
     </div>
   </div>

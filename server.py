@@ -154,6 +154,16 @@ async def root():
         return FileResponse(str(index_file))
     return HTMLResponse("<h1>SVA Clone Dubbing Server Ready</h1>")
 
+@app.get("/sw.js")
+async def get_service_worker():
+    sw_file = STATIC_DIR / "sw.js"
+    return FileResponse(str(sw_file), media_type="application/javascript", headers={"Service-Worker-Allowed": "/"})
+
+@app.get("/manifest.json")
+async def get_manifest():
+    m_file = STATIC_DIR / "manifest.json"
+    return FileResponse(str(m_file), media_type="application/manifest+json")
+
 # Active server port
 ACTIVE_PORT = 8000
 

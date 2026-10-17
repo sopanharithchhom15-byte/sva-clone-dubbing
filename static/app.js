@@ -67,7 +67,61 @@ async function refreshAppData() {
   }
 }
 
+// PWA & Mobile Native App Installation Manager
+let gDeferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.log('SW note:', err);
+    });
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  gDeferredInstallPrompt = e;
+  const btn = document.getElementById('btnInstallApp');
+  if (btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  gDeferredInstallPrompt = null;
+  const btn = document.getElementById('btnInstallApp');
+  if (btn) btn.style.display = 'none';
+  showToast("🎉 ដំឡើងកម្មវិធីជោគជ័យ!", "success", 4000);
+});
+
+async function triggerPwaInstall() {
+  if (gDeferredInstallPrompt) {
+    gDeferredInstallPrompt.prompt();
+    const choice = await gDeferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      showToast("✅ កំពុងដំឡើង App លើទូរស័ព្ទរបស់អ្នក...", "success");
+    }
+    gDeferredInstallPrompt = null;
+  } else {
+    openInstallGuideModal();
+  }
+}
+
+function openInstallGuideModal() {
+  const m = document.getElementById('installGuideModal');
+  if (m) m.style.display = 'flex';
+}
+
+function closeInstallGuideModal() {
+  const m = document.getElementById('installGuideModal');
+  if (m) m.style.display = 'none';
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const btnInstall = document.getElementById('btnInstallApp');
+  if (btnInstall && !isStandalone) {
+    btnInstall.style.display = 'flex';
+  }
+
   await loadNetworkInfo();
   await loadSettings();
   await loadVoices();
