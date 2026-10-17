@@ -39,6 +39,34 @@ async function startNewProject() {
   }
 }
 
+// Global Refresh Data Controller
+async function refreshAppData() {
+  const btn = document.getElementById("btnAppRefresh");
+  if (btn) btn.classList.add("is-refreshing");
+  
+  showToast("🔄 កំពុងទាញយកទិន្នន័យថ្មី (Refreshing)...", "info", 1800);
+  
+  try {
+    await Promise.all([
+      loadNetworkInfo(),
+      loadSettings(),
+      loadVoices(),
+      loadSessionState()
+    ]);
+    updateWorkflowStepper();
+    showToast("✅ ធ្វើបច្ចុប្បន្នភាពជោគជ័យ (Refreshed)!", "success", 2500);
+  } catch (e) {
+    console.error("Refresh error:", e);
+    showToast("⚠️ កំហុសពេល Refresh: " + e.message, "warning", 3000);
+  } finally {
+    if (btn) {
+      setTimeout(() => {
+        btn.classList.remove("is-refreshing");
+      }, 600);
+    }
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   await loadNetworkInfo();
   await loadSettings();

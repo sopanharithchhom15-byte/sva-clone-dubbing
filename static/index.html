@@ -29,6 +29,9 @@
       </div>
     </div>
     <div class="header-right">
+      <button class="btn-refresh-pill" id="btnAppRefresh" onclick="refreshAppData()" title="Refresh / ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ">
+        <span class="refresh-icon">🔄</span> <span class="hide-mobile">Refresh</span>
+      </button>
       <button class="btn-new-project-pill" onclick="startNewProject()" title="ចាប់ផ្តើមគម្រោងថ្មីដាច់ដោយឡែក">
         ➕ <span class="hide-mobile">គម្រោងថ្មី</span>
       </button>
@@ -262,6 +265,7 @@
         <div class="card-header space-between">
           <h2>📝 បញ្ជី Subtitle (<span id="subCount">0</span> បន្ទាត់)</h2>
           <div class="header-actions">
+            <button class="btn btn-sm btn-outline" onclick="refreshAppData()" title="Refresh Subtitle">🔄 Refresh</button>
             <button class="btn btn-sm btn-outline" onclick="addNewSubtitleLine()">➕ បន្ថែមបន្ទាត់</button>
             <button class="btn btn-sm btn-outline" onclick="downloadSrtFile()">📥 ទាញយក SRT</button>
           </div>
@@ -351,7 +355,10 @@
       <div class="card glass-card">
         <div class="card-header space-between">
           <h2>🎭 ឃ្លាំងសំឡេងតួអង្គ (Voice Bank / Clone Profiles)</h2>
-          <button class="btn btn-sm btn-primary" onclick="openAddVoiceModal()">➕ បន្ថែមសំឡេងក្លូនថ្មី</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-sm btn-outline" onclick="refreshAppData()" title="Refresh សំឡេង">🔄 Refresh</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddVoiceModal()">➕ បន្ថែមសំឡេងក្លូនថ្មី</button>
+          </div>
         </div>
         <div class="card-body">
           <div id="voiceBankGrid" class="voice-bank-grid">
