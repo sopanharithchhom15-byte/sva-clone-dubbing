@@ -691,6 +691,15 @@ async function loadSessionState() {
         if (resWrap) resWrap.style.display = "block";
       }
     }
+
+    if (state.has_bgm) {
+      updateBgmUI({
+        has_bgm: true,
+        bgm_url: state.bgm_url,
+        vocals_url: state.vocals_url,
+        video_bgm_url: state.video_bgm_url
+      });
+    }
   } catch (e) {
     console.error("Error loading session:", e);
   }
@@ -784,6 +793,7 @@ function handleVideoUpload(input) {
           if (previewWrap) previewWrap.style.display = "block";
           
           showToastNotification("✅ Upload វីដេអូជោគជ័យ!");
+          resetVocalSepUI();
           
           setTimeout(() => {
             if (progressWrap) progressWrap.style.display = "none";
@@ -1343,6 +1353,34 @@ async function startRenderVideo() {
   const progressBar = document.getElementById("renderProgressBar");
   const progressPct = document.getElementById("renderProgressPct");
   
+  // 1. Validate if video is uploaded
+  const videoPlayer = document.getElementById("sourceVideoPlayer");
+  const videoFileName = document.getElementById("videoFileName")?.innerText || "";
+  const isVideoLoaded = videoPlayer && videoPlayer.src && 
+                        !videoPlayer.src.endsWith("#") && 
+                        document.getElementById("videoPreviewWrap") && 
+                        document.getElementById("videoPreviewWrap").style.display !== "none" &&
+                        !videoFileName.includes("មិនទាន់");
+
+  if (!isVideoLoaded) {
+    alert("⚠️ សូមបញ្ចូលឯកសារវីដេអូដើម (Upload Video) នៅផ្ទាំងទី ១ ជាមុនសិន មុននឹងចាប់ផ្តើម Render!");
+    if (typeof switchTab === "function") {
+      switchTab("tabMedia");
+    }
+    const upBox = document.getElementById("videoUploadBox");
+    if (upBox) upBox.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  // 2. Validate if subtitles exist
+  if (!gSubtitles || !gSubtitles.length) {
+    alert("⚠️ មិនទាន់មាន Subtitle សម្រាប់បញ្ចូលក្នុងវីដេអូឡើយ! សូមបញ្ចូល Subtitle ជាមុនសិន។");
+    if (typeof switchTab === "function") {
+      switchTab("tabSubtitle");
+    }
+    return;
+  }
+
   progressWrap.style.display = "block";
   progressBar.style.width = "10%";
   progressPct.innerText = "10%";
@@ -1375,6 +1413,7 @@ async function startRenderVideo() {
     dub_volume: parseInt(document.getElementById("inputDubVol").value),
     bg_volume: parseInt(document.getElementById("inputBgVol").value),
     mute_original: document.getElementById("checkMuteOrig").checked,
+    use_bgm_only: document.getElementById("checkUseBgmOnly") ? document.getElementById("checkUseBgmOnly").checked : true,
     burn_subtitles: document.getElementById("checkBurnSubs").checked,
     effects: effectsPayload
   };
@@ -1394,7 +1433,17 @@ async function startRenderVideo() {
       if (errTxt.includes("<html") || errTxt.includes("<!DOCTYPE")) {
         throw new Error("⚠️ តំណភ្ជាប់នេះបានផុតកំណត់។ សូមបើក Link ថ្មី ឬ Refresh ទំព័រឡើងវិញ!");
       }
-      throw new Error(`Server Error (${res.status}): ${errTxt}`);
+      try {
+        const errJson = JSON.parse(errTxt);
+        if (errJson && errJson.error) {
+          throw new Error(errJson.error);
+        }
+      } catch (pErr) {
+        if (pErr.message && pErr.message !== errTxt && !pErr.message.includes("JSON")) {
+          throw pErr;
+        }
+      }
+      throw new Error(errTxt || `Server Error (${res.status})`);
     }
 
     const contentType = res.headers.get("content-type") || "";
@@ -1443,7 +1492,7 @@ async function startRenderVideo() {
     if (msg.includes("pattern") || msg.includes("token") || msg.includes("JSON") || msg.includes("SyntaxError")) {
       alert("⚠️ តំណភ្ជាប់ Public Link បានផុតកំណត់ហើយ! សូមប្រើប្រាស់តំណភ្ជាប់ Public Link ថ្មីចុងក្រោយ ឬ Refresh ទំព័រឡើងវិញ។");
     } else {
-      alert("កំហុស Render: " + msg);
+      alert("❌ " + msg);
     }
     progressWrap.style.display = "none";
   }
@@ -1552,3 +1601,173 @@ function showToastNotification(msg) {
     toast.classList.remove("show");
   }, 2800);
 }
+
+// ==========================================
+// 11. AI Vocal Remover & BGM Functions
+// ==========================================
+let gVocalSepPollInterval = null;
+
+function scrollToVocalSeparator() {
+  const el = document.getElementById("vocalSeparatorCard");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.boxShadow = "0 0 24px rgba(56, 189, 248, 0.7)";
+    setTimeout(() => {
+      el.style.boxShadow = "";
+    }, 2200);
+  }
+}
+
+function handleMuteOrigChange(isMuted) {
+  const useBgmBox = document.getElementById("checkUseBgmOnly");
+  if (useBgmBox) {
+    useBgmBox.disabled = isMuted;
+    if (useBgmBox.parentElement) {
+      useBgmBox.parentElement.style.opacity = isMuted ? "0.5" : "1.0";
+    }
+  }
+}
+
+function resetVocalSepUI() {
+  const resultWrap = document.getElementById("vocalSepResultWrap");
+  if (resultWrap) resultWrap.style.display = "none";
+  
+  const progWrap = document.getElementById("vocalSepProgressWrap");
+  if (progWrap) progWrap.style.display = "none";
+  
+  const pBgm = document.getElementById("playerBgmAudio");
+  if (pBgm) pBgm.src = "";
+  
+  const pVoc = document.getElementById("playerVocalsAudio");
+  if (pVoc) pVoc.src = "";
+  
+  const badgeCard = document.getElementById("vocalSepCardBadge");
+  if (badgeCard) {
+    badgeCard.innerText = "មិនទាន់កាត់";
+    badgeCard.className = "badge-tag";
+    badgeCard.style.color = "";
+  }
+  
+  const badgeRender = document.getElementById("renderBgmStatusBadge");
+  if (badgeRender) {
+    badgeRender.innerText = "ℹ️ មិនទាន់កាត់ BGM";
+    badgeRender.className = "badge-tag";
+    badgeRender.style.color = "";
+  }
+}
+
+function updateBgmUI(data) {
+  if (!data || !data.has_bgm) return;
+  
+  const pBgm = document.getElementById("playerBgmAudio");
+  const pVoc = document.getElementById("playerVocalsAudio");
+  const linkBgm = document.getElementById("linkDownloadBgm");
+  const linkVoc = document.getElementById("linkDownloadVocals");
+  const linkVid = document.getElementById("linkDownloadVideoBgm");
+  const resultWrap = document.getElementById("vocalSepResultWrap");
+  const vidWrap = document.getElementById("videoBgmWrap");
+  
+  if (pBgm && data.bgm_url) pBgm.src = data.bgm_url;
+  if (pVoc && data.vocals_url) pVoc.src = data.vocals_url;
+  if (linkBgm && data.bgm_url) linkBgm.href = data.bgm_url;
+  if (linkVoc && data.vocals_url) linkVoc.href = data.vocals_url;
+  
+  if (linkVid && data.video_bgm_url) {
+    linkVid.href = data.video_bgm_url;
+    if (vidWrap) vidWrap.style.display = "flex";
+  } else if (vidWrap) {
+    vidWrap.style.display = "none";
+  }
+  
+  if (resultWrap) resultWrap.style.display = "block";
+  
+  const badgeCard = document.getElementById("vocalSepCardBadge");
+  if (badgeCard) {
+    badgeCard.innerText = "✅ រួចរាល់";
+    badgeCard.className = "badge-edge-clean";
+    badgeCard.style.color = "var(--success-color)";
+  }
+  
+  const badgeRender = document.getElementById("renderBgmStatusBadge");
+  if (badgeRender) {
+    badgeRender.innerText = "✅ BGM រួចរាល់ (គ្មានសំឡេងនិយាយ)";
+    badgeRender.className = "badge-edge-clean";
+    badgeRender.style.color = "var(--success-color)";
+  }
+}
+
+async function startVocalSeparation() {
+  const btn = document.getElementById("btnStartVocalSep");
+  const progWrap = document.getElementById("vocalSepProgressWrap");
+  const progMsg = document.getElementById("vocalSepProgressMsg");
+  const progBar = document.getElementById("vocalSepProgressBar");
+  const progPct = document.getElementById("vocalSepProgressPct");
+  
+  // Check if media is uploaded
+  const vPlayer = document.getElementById("sourceVideoPlayer");
+  const fileNameEl = document.getElementById("videoFileName");
+  if (!vPlayer || !vPlayer.src || (fileNameEl && fileNameEl.innerText.includes("ជ្រើសរើសវីដេអូ"))) {
+    alert("⚠️ សូមបញ្ចូលវីដេអូ ឬសំឡេងដើមជាមុនសិន!");
+    return;
+  }
+  
+  if (btn) btn.disabled = true;
+  if (progWrap) progWrap.style.display = "block";
+  if (progBar) progBar.style.width = "5%";
+  if (progPct) progPct.innerText = "5%";
+  if (progMsg) progMsg.innerHTML = `<span class="spinner-inline"></span> កំពុងចាប់ផ្តើម AI កាត់សំឡេងនិយាយ...`;
+  
+  try {
+    const res = await fetch("/api/separate_vocals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: gSessionId })
+    });
+    
+    const data = await res.json();
+    if (!data.success) {
+      alert("❌ " + (data.error || "មិនអាចចាប់ផ្តើមកាត់សំឡេងបានទេ"));
+      if (btn) btn.disabled = false;
+      if (progWrap) progWrap.style.display = "none";
+      return;
+    }
+    
+    // Poll progress
+    if (gVocalSepPollInterval) clearInterval(gVocalSepPollInterval);
+    gVocalSepPollInterval = setInterval(async () => {
+      try {
+        const pRes = await fetch(`/api/vocal_separation_progress?session_id=${encodeURIComponent(gSessionId)}`);
+        if (!pRes.ok) return;
+        const pData = await pRes.json();
+        
+        if (progBar) progBar.style.width = pData.percent + "%";
+        if (progPct) progPct.innerText = pData.percent + "%";
+        if (progMsg) progMsg.innerHTML = `<span class="spinner-inline"></span> ${pData.message}`;
+        
+        if (!pData.is_running) {
+          clearInterval(gVocalSepPollInterval);
+          gVocalSepPollInterval = null;
+          if (btn) btn.disabled = false;
+          
+          if (pData.has_bgm) {
+            updateBgmUI(pData);
+            showToastNotification("✅ កាត់សំឡេងនិយាយ និងរក្សា BGM ជោគជ័យ!");
+            setTimeout(() => {
+              if (progWrap) progWrap.style.display = "none";
+            }, 2500);
+          } else {
+            alert("❌ " + (pData.message || "ការកាត់សំឡេងបរាជ័យ"));
+          }
+        }
+      } catch (err) {
+        console.error("Vocal separation poll error:", err);
+      }
+    }, 1500);
+    
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (progWrap) progWrap.style.display = "none";
+    alert("❌ Server error: " + e.message);
+  }
+}
+
