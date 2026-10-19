@@ -677,49 +677,6 @@ async def run_batch_tts_worker(sdir: Path, subs: List[Dict[str, Any]], indices: 
 async def api_tts_progress(session_id: str = "default"):
     return JSONResponse(get_tts_state(session_id))
 
-@app.post("/api/upload_logo")
-async def api_upload_logo(
-    file: UploadFile = File(...),
-    session_id: str = Form("default")
-):
-    sdir = get_session_dir(session_id)
-    state = load_session_state(sdir)
-    
-    file_ext = Path(file.filename).suffix.lower()
-    if file_ext not in [".png", ".jpg", ".jpeg", ".webp"]:
-        return JSONResponse({"success": False, "error": "សូមជ្រើសរើសឯកសាររូបភាព (PNG, JPG, WEBP)"}, status_code=400)
-        
-    dest_file = sdir / f"logo_{int(time.time())}{file_ext}"
-    with open(dest_file, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    state["logo_path"] = str(dest_file)
-    state["logo_name"] = file.filename
-    state["logo_url"] = f"/api/media/logo?session_id={session_id}&t={int(time.time())}"
-    save_session_state(sdir, state)
-    
-    return JSONResponse({
-        "success": True,
-        "logo_url": state["logo_url"],
-        "logo_name": file.filename
-    })
-
-@app.delete("/api/delete_logo")
-async def api_delete_logo(session_id: str = "default"):
-    sdir = get_session_dir(session_id)
-    state = load_session_state(sdir)
-    lpath = state.get("logo_path")
-    if lpath and Path(lpath).exists():
-        try:
-            Path(lpath).unlink(missing_ok=True)
-        except Exception:
-            pass
-    state.pop("logo_path", None)
-    state.pop("logo_name", None)
-    state.pop("logo_url", None)
-    save_session_state(sdir, state)
-    return JSONResponse({"success": True})
-
 @app.post("/api/render_video")
 async def api_render_video(request: Request, bg_tasks: BackgroundTasks):
     body = await request.json()
@@ -739,16 +696,10 @@ async def api_render_video(request: Request, bg_tasks: BackgroundTasks):
     mute_orig = body.get("mute_original", settings.get("mute_original", False))
     use_bgm_only = body.get("use_bgm_only", settings.get("use_bgm_only", True))
     burn_subs = body.get("burn_subtitles", settings.get("burn_subtitles", True))
-    effects = body.get("effects", {})
-    
-    # If logo enabled and no path specified, use saved logo_path
-    if effects.get("logo", {}).get("enabled"):
-        if not effects["logo"].get("path"):
-            effects["logo"]["path"] = state.get("logo_path")
     
     bg_tasks.add_task(
         run_render_worker, sdir, video_path, state,
-        dub_vol, bg_vol, mute_orig, burn_subs, effects, session_id,
+        dub_vol, bg_vol, mute_orig, burn_subs, session_id,
         use_bgm_only
     )
     return JSONResponse({"success": True, "message": "កំពុងចាប់ផ្តើម Render វីដេអូ..."})
@@ -756,8 +707,7 @@ async def api_render_video(request: Request, bg_tasks: BackgroundTasks):
 def run_render_worker(
     sdir: Path, video_path: str, state: Dict[str, Any],
     dub_vol: int, bg_vol: int, mute_orig: bool, burn_subs: bool,
-    effects: Optional[Dict[str, Any]], session_id: str,
-    use_bgm_only: bool = True
+    session_id: str, use_bgm_only: bool = True
 ):
     prog = get_render_state(session_id)
     prog.update({
@@ -807,7 +757,6 @@ def run_render_worker(
         bg_volume_percent=bg_vol,
         mute_original=mute_orig,
         burn_subtitles=burn_subs,
-        effects=effects,
         progress_callback=on_prog,
         bgm_audio_path=bgm_path_str,
         use_bgm_only=use_bgm_only
@@ -849,11 +798,6 @@ async def api_get_media(media_type: str, session_id: str = "default"):
         vpath = state.get("video_path")
         if vpath and Path(vpath).exists():
             return FileResponse(vpath)
-    elif media_type == "logo":
-        state = load_session_state(sdir)
-        lpath = state.get("logo_path")
-        if lpath and Path(lpath).exists():
-            return FileResponse(lpath)
     elif media_type == "master_dub":
         f = sdir / "master_dub.mp3"
         if f.exists():

@@ -18,6 +18,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  <script>
+    (function() {
+      try {
+        var raw = localStorage.getItem("app_appearance");
+        if (raw) {
+          var t = JSON.parse(raw);
+          if (t && t.bg) {
+            var root = document.documentElement;
+            root.style.setProperty("--bg-primary", t.bg);
+            if (t.fg) root.style.setProperty("--text-main", t.fg);
+            if (t.accent) root.style.setProperty("--accent-color", t.accent);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -39,6 +55,9 @@
       </button>
       <button class="btn-new-project-pill" onclick="startNewProject()" title="ចាប់ផ្តើមគម្រោងថ្មីដាច់ដោយឡែក">
         ➕ <span class="hide-mobile">គម្រោងថ្មី</span>
+      </button>
+      <button class="btn-theme-pill" onclick="openAppearanceModal()" title="ប្តូរពណ៌ & រូបរាង (Appearance)">
+        🎨 <span class="hide-mobile">រូបរាង</span>
       </button>
       <button class="btn-qr-pill" onclick="openQrModal()" title="ភ្ជាប់ទូរស័ព្ទ / iPad / MatePad">
         📲 <span class="hide-mobile">ទូរស័ព្ទ / iPad / Tablet</span> <span id="ipBadge" class="badge-ip">WiFi</span>
@@ -419,149 +438,6 @@
             </p>
           </div>
 
-          <!-- Video Effects Section (Blur, Flip, Add Text, Add Logo) -->
-          <div class="effects-container">
-            <div class="effects-section-title">
-              <span>✨ បន្ថែម Effect លើវីដេអូ (Video Effects)</span>
-              <span class="badge-edge-clean">Blur • Flip • Text • Logo</span>
-            </div>
-            <div class="effects-hint-banner" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 0.82rem; line-height: 1.5; color: var(--text-muted);">
-              💡 <strong style="color:var(--accent-color);">របៀបដំណើរការ៖</strong> Effect ទាំងនេះ (Flip, Blur, Text, Logo) មិនបង្ហាញលើវីដេអូដើមខាងលើទេ ដោយសារវាប្រើប្រព័ន្ធ FFmpeg ដុតចូលសាច់វីដេអូ។ <strong>វានឹងលោតបង្ហាញក្នុង «វីដេអូចុងក្រោយ» បន្ទាប់ពីចុចប៊ូតុង "🎬 ចាប់ផ្តើម Render វីដេអូពេញលេញ"</strong> ខាងក្រោមរួចរាល់ ១០០%!
-            </div>
-
-            <div class="effects-grid">
-              <!-- 1. Flip Effect -->
-              <div class="effect-card" id="effectCardFlip">
-                <div class="effect-header">
-                  <span class="effect-title">🔄 ត្រឡប់វីដេអូ (Flip Video)</span>
-                </div>
-                <div class="effect-body">
-                  <div class="form-group" style="margin-bottom:0;">
-                    <select id="selectFlipMode" class="form-input">
-                      <option value="none">🚫 គ្មាន (ធម្មតា / Normal)</option>
-                      <option value="horizontal">↔️ ផ្ដេក / ឆ្វេង-ស្តាំ (Horizontal Flip - ការពារ Copyright)</option>
-                      <option value="vertical">↕️ បញ្ឈរ / លើ-ក្រោម (Vertical Flip)</option>
-                      <option value="both">🔀 ទាំងពីរ (Horizontal & Vertical)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. Blur Effect -->
-              <div class="effect-card" id="effectCardBlur">
-                <div class="effect-header">
-                  <label class="custom-checkbox">
-                    <input type="checkbox" id="checkEffectBlur" onchange="toggleEffectOption('blur')">
-                    <span class="effect-title">💧 ធ្វើឱ្យព្រាល (Blur Video)</span>
-                  </label>
-                </div>
-                <div class="effect-body" id="effectBodyBlur" style="display:none;">
-                  <div class="setting-item" style="margin-bottom:0;">
-                    <label>កម្រិតព្រាល (Blur Strength): <span id="valBlurStrength" class="val-pill">5 px</span></label>
-                    <input type="range" id="inputBlurStrength" min="1" max="25" value="5" oninput="document.getElementById('valBlurStrength').innerText = this.value + ' px'">
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. Add Text Watermark -->
-              <div class="effect-card" id="effectCardText">
-                <div class="effect-header">
-                  <label class="custom-checkbox">
-                    <input type="checkbox" id="checkEffectText" onchange="toggleEffectOption('text')">
-                    <span class="effect-title">🔤 ដាក់អក្សរលើវីដេអូ (Add Text Watermark)</span>
-                  </label>
-                </div>
-                <div class="effect-body" id="effectBodyText" style="display:none;">
-                  <div class="form-group">
-                    <label class="form-label">អត្ថបទ (Text Watermark):</label>
-                    <input type="text" id="inputTextContent" class="form-input" placeholder="ឧទាហរណ៍: SVA Movie, ឈ្មោះម្ចាស់ឆានែល..." value="">
-                  </div>
-                  <div class="settings-grid" style="margin-bottom:12px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                      <label class="form-label">ទីតាំង (Position):</label>
-                      <select id="selectTextPos" class="form-input">
-                        <option value="top_center" selected>⬆️ ខាងលើកណ្តាល (Top Center)</option>
-                        <option value="top_left">↖️ ខាងលើឆ្វេង (Top Left)</option>
-                        <option value="top_right">↗️ ខាងលើស្តាំ (Top Right)</option>
-                        <option value="center">⏺️ ចំកណ្តាល (Center)</option>
-                        <option value="bottom_center">⬇️ ខាងក្រោមកណ្តាល (Bottom Center)</option>
-                        <option value="bottom_left">↙️ ខាងក្រោមឆ្វេង (Bottom Left)</option>
-                        <option value="bottom_right">↘️ ខាងក្រោមស្តាំ (Bottom Right)</option>
-                      </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                      <label class="form-label">ទំហំអក្សរ: <span id="valTextFontSize" class="val-pill">32 px</span></label>
-                      <input type="range" id="inputTextFontSize" min="16" max="72" value="32" oninput="document.getElementById('valTextFontSize').innerText = this.value + ' px'">
-                    </div>
-                  </div>
-                  <div class="settings-grid" style="margin-bottom:0;">
-                    <div class="form-group" style="margin-bottom:0;">
-                      <label class="form-label">ពណ៌អក្សរ (Text Color):</label>
-                      <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="color" id="inputTextColor" value="#FFFFFF" style="width:45px; height:38px; border-radius:6px; cursor:pointer; background:none; border:1px solid var(--border-color);" onchange="document.getElementById('textColorHex').innerText = this.value">
-                        <span id="textColorHex" style="font-size:0.85rem; color:var(--text-muted);">#FFFFFF</span>
-                      </div>
-                    </div>
-                    <div class="form-group" style="display:flex; align-items:center; margin-bottom:0; padding-top:20px;">
-                      <label class="custom-checkbox">
-                        <input type="checkbox" id="checkTextBox" checked>
-                        <span>ប្រអប់ខ្មៅស្រាល (Dark Box Background)</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 4. Add Logo Overlay -->
-              <div class="effect-card" id="effectCardLogo">
-                <div class="effect-header">
-                  <label class="custom-checkbox">
-                    <input type="checkbox" id="checkEffectLogo" onchange="toggleEffectOption('logo')">
-                    <span class="effect-title">🖼️ ដាក់រូប Logo (Add Logo Overlay)</span>
-                  </label>
-                </div>
-                <div class="effect-body" id="effectBodyLogo" style="display:none;">
-                  <div class="logo-upload-wrap" style="margin-bottom:12px;">
-                    <label class="form-label">ជ្រើសរើសរូប Logo (PNG, JPG, WEBP):</label>
-                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                      <input type="file" id="inputLogoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
-                      <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('inputLogoFile').click()">
-                        📁 ជ្រើសរើសរូប Logo...
-                      </button>
-                      <div id="logoPreviewWrap" style="display:none; align-items:center; gap:8px; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:8px; border:1px solid var(--border-color);">
-                        <img id="logoPreviewImg" src="" style="height:36px; max-width:80px; object-fit:contain; border-radius:4px;">
-                        <span id="logoFileName" style="font-size:0.75rem; color:var(--text-muted); max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-                        <button type="button" class="btn-icon" style="padding:4px; font-size:0.75rem;" onclick="removeLogo()" title="លុប Logo">❌</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="settings-grid" style="margin-bottom:12px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                      <label class="form-label">ទីតាំង Logo (Position):</label>
-                      <select id="selectLogoPos" class="form-input">
-                        <option value="top_right" selected>↗️ ខាងលើស្តាំ (Top Right)</option>
-                        <option value="top_left">↖️ ខាងលើឆ្វេង (Top Left)</option>
-                        <option value="top_center">⬆️ ខាងលើកណ្តាល (Top Center)</option>
-                        <option value="bottom_right">↘️ ខាងក្រោមស្តាំ (Bottom Right)</option>
-                        <option value="bottom_left">↙️ ខាងក្រោមឆ្វេង (Bottom Left)</option>
-                        <option value="bottom_center">⬇️ ខាងក្រោមកណ្តាល (Bottom Center)</option>
-                        <option value="center">⏺️ ចំកណ្តាល (Center)</option>
-                      </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                      <label class="form-label">ទំហំទទឹង Logo: <span id="valLogoWidth" class="val-pill">120 px</span></label>
-                      <input type="range" id="inputLogoWidth" min="40" max="400" value="120" oninput="document.getElementById('valLogoWidth').innerText = this.value + ' px'">
-                    </div>
-                  </div>
-                  <div class="setting-item" style="margin-bottom:0;">
-                    <label>ភាពថ្លា Logo (Opacity): <span id="valLogoOpacity" class="val-pill">85%</span></label>
-                    <input type="range" id="inputLogoOpacity" min="10" max="100" value="85" oninput="document.getElementById('valLogoOpacity').innerText = this.value + '%'">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="render-action-row">
             <button class="btn btn-giant btn-primary" onclick="startRenderVideo()">
               🎬 ចាប់ផ្តើម Render វីដេអូពេញលេញ
@@ -598,6 +474,74 @@
 
     <!-- TAB 4: Settings -->
     <section id="tabSettings" class="tab-content">
+      <!-- Appearance & Theme Card (Exact Match to User UI) -->
+      <div class="card glass-card appearance-card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>🎨 រូបរាង & ពណ៌ (Appearance)</h2>
+          <span class="badge-theme-active" id="themeStatusBadge">Default Dark</span>
+        </div>
+        <div class="card-body">
+          <div class="appearance-panel">
+            <!-- Preset Row -->
+            <div class="appearance-row">
+              <label class="appearance-label">Preset</label>
+              <div class="appearance-control-group">
+                <button type="button" class="appearance-btn-reset" onclick="resetAppearanceToDefault()" title="កំណត់ទៅដើមវិញ (Reset to Default)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                </button>
+                <select id="appearancePresetSelect" class="appearance-select" onchange="applyPresetTheme(this.value)">
+                  <option value="default_dark">Default Dark</option>
+                  <option value="purple_dream">Purple Dream (#4E007E)</option>
+                  <option value="oled_black">OLED Pure Black</option>
+                  <option value="cyberpunk_neon">Cyberpunk Neon</option>
+                  <option value="emerald_forest">Emerald Forest</option>
+                  <option value="midnight_navy">Midnight Navy</option>
+                  <option value="sunset_amber">Sunset Amber</option>
+                  <option value="clean_light">Clean Light</option>
+                  <option value="custom">Custom (កំណត់ផ្ទាល់ខ្លួន)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Background Row -->
+            <div class="appearance-row">
+              <label class="appearance-label">Background</label>
+              <div class="appearance-color-box">
+                <input type="color" id="themeColorBgPicker" class="appearance-color-input" value="#0F172A" oninput="onCustomColorChange('bg', this.value)">
+                <span class="appearance-swatch" id="themeColorBgSwatch" style="background-color: #0F172A;"></span>
+                <span class="appearance-hash">#</span>
+                <input type="text" id="themeColorBgHex" class="appearance-hex-input" value="0F172A" maxlength="6" oninput="onHexInputChange('bg', this.value)">
+              </div>
+            </div>
+
+            <!-- Foreground Row -->
+            <div class="appearance-row">
+              <label class="appearance-label">Foreground</label>
+              <div class="appearance-color-box">
+                <input type="color" id="themeColorFgPicker" class="appearance-color-input" value="#F8FAFC" oninput="onCustomColorChange('fg', this.value)">
+                <span class="appearance-swatch" id="themeColorFgSwatch" style="background-color: #F8FAFC;"></span>
+                <span class="appearance-hash">#</span>
+                <input type="text" id="themeColorFgHex" class="appearance-hex-input" value="F8FAFC" maxlength="6" oninput="onHexInputChange('fg', this.value)">
+              </div>
+            </div>
+
+            <!-- Accent Row -->
+            <div class="appearance-row">
+              <label class="appearance-label">Accent</label>
+              <div class="appearance-color-box">
+                <input type="color" id="themeColorAccentPicker" class="appearance-color-input" value="#38BDF8" oninput="onCustomColorChange('accent', this.value)">
+                <span class="appearance-swatch" id="themeColorAccentSwatch" style="background-color: #38BDF8;"></span>
+                <span class="appearance-hash">#</span>
+                <input type="text" id="themeColorAccentHex" class="appearance-hex-input" value="38BDF8" maxlength="6" oninput="onHexInputChange('accent', this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card glass-card">
         <div class="card-header">
           <h2>⚙️ ការកំណត់ប្រព័ន្ធ (AI & Server Settings)</h2>
@@ -922,6 +866,86 @@
       </div>
       <div class="modal-footer" style="justify-content:center;">
         <button class="btn btn-primary" style="min-width:140px;" onclick="closeInstallGuideModal()">យល់ព្រម</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Quick Appearance Customizer -->
+  <div id="appearanceModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) closeAppearanceModal()">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.4rem;">🎨</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem;">រូបរាង & ពណ៌ (Appearance)</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">ផ្លាស់ប្តូររូបរាងផ្ទាំងកម្មវិធីតាមចំណូលចិត្ត</span>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeAppearanceModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:16px;">
+        <div class="appearance-panel">
+          <!-- Preset Row -->
+          <div class="appearance-row">
+            <label class="appearance-label">Preset</label>
+            <div class="appearance-control-group">
+              <button type="button" class="appearance-btn-reset" onclick="resetAppearanceToDefault()" title="កំណត់ទៅដើមវិញ (Reset to Default)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+              </button>
+              <select id="modalAppearancePresetSelect" class="appearance-select" onchange="applyPresetTheme(this.value)">
+                <option value="default_dark">Default Dark</option>
+                <option value="purple_dream">Purple Dream (#4E007E)</option>
+                <option value="oled_black">OLED Pure Black</option>
+                <option value="cyberpunk_neon">Cyberpunk Neon</option>
+                <option value="emerald_forest">Emerald Forest</option>
+                <option value="midnight_navy">Midnight Navy</option>
+                <option value="sunset_amber">Sunset Amber</option>
+                <option value="clean_light">Clean Light</option>
+                <option value="custom">Custom (កំណត់ផ្ទាល់ខ្លួន)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Background Row -->
+          <div class="appearance-row">
+            <label class="appearance-label">Background</label>
+            <div class="appearance-color-box">
+              <input type="color" id="modalThemeColorBgPicker" class="appearance-color-input" value="#0F172A" oninput="onCustomColorChange('bg', this.value)">
+              <span class="appearance-swatch" id="modalThemeColorBgSwatch" style="background-color: #0F172A;"></span>
+              <span class="appearance-hash">#</span>
+              <input type="text" id="modalThemeColorBgHex" class="appearance-hex-input" value="0F172A" maxlength="6" oninput="onHexInputChange('bg', this.value)">
+            </div>
+          </div>
+
+          <!-- Foreground Row -->
+          <div class="appearance-row">
+            <label class="appearance-label">Foreground</label>
+            <div class="appearance-color-box">
+              <input type="color" id="modalThemeColorFgPicker" class="appearance-color-input" value="#F8FAFC" oninput="onCustomColorChange('fg', this.value)">
+              <span class="appearance-swatch" id="modalThemeColorFgSwatch" style="background-color: #F8FAFC;"></span>
+              <span class="appearance-hash">#</span>
+              <input type="text" id="modalThemeColorFgHex" class="appearance-hex-input" value="F8FAFC" maxlength="6" oninput="onHexInputChange('fg', this.value)">
+            </div>
+          </div>
+
+          <!-- Accent Row -->
+          <div class="appearance-row">
+            <label class="appearance-label">Accent</label>
+            <div class="appearance-color-box">
+              <input type="color" id="modalThemeColorAccentPicker" class="appearance-color-input" value="#38BDF8" oninput="onCustomColorChange('accent', this.value)">
+              <span class="appearance-swatch" id="modalThemeColorAccentSwatch" style="background-color: #38BDF8;"></span>
+              <span class="appearance-hash">#</span>
+              <input type="text" id="modalThemeColorAccentHex" class="appearance-hex-input" value="38BDF8" maxlength="6" oninput="onHexInputChange('accent', this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn btn-secondary" onclick="resetAppearanceToDefault()">🔄 Reset ដើម</button>
+        <button class="btn btn-primary" onclick="closeAppearanceModal()">✓ រួចរាល់</button>
       </div>
     </div>
   </div>

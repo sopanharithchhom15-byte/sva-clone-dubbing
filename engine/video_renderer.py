@@ -224,7 +224,6 @@ def render_dubbed_video(
     bg_volume_percent: int = 20,
     mute_original: bool = False,
     burn_subtitles: bool = True,
-    effects: Optional[Dict[str, Any]] = None,
     progress_callback = None,
     bgm_audio_path: Optional[str] = None,
     use_bgm_only: bool = True
@@ -233,12 +232,10 @@ def render_dubbed_video(
     Renders the final dubbed video using FFmpeg:
     - Mixes dubbed voice and original audio or separated BGM (vocals removed)
     - Hardcodes styled subtitles if requested
-    - Applies video effects: Blur, Flip, Add Text, Add Logo
     """
-    temp_text_file = None
     try:
         if progress_callback:
-            progress_callback(10, "កំពុងរៀបចំ Render វីដេអូ និង Effect...")
+            progress_callback(10, "កំពុងរៀបចំ Render វីដេអូ...")
             
         cmd = ["ffmpeg", "-y", "-i", video_path]
         next_input_idx = 1
@@ -257,17 +254,6 @@ def render_dubbed_video(
         if has_clean_bgm:
             cmd.extend(["-i", str(bgm_audio_path)])
             bgm_input_idx = next_input_idx
-            next_input_idx += 1
-
-        # Check logo overlay input
-        effects = effects or {}
-        logo_input_idx = None
-        logo_cfg = effects.get("logo", {})
-        logo_enabled = logo_cfg.get("enabled", False)
-        logo_path = logo_cfg.get("path")
-        if logo_enabled and logo_path and os.path.exists(str(logo_path)):
-            cmd.extend(["-i", str(logo_path)])
-            logo_input_idx = next_input_idx
             next_input_idx += 1
             
         # Audio filter
@@ -308,99 +294,14 @@ def render_dubbed_video(
                 filter_complex.append("[0:a]volume=1.0[aout]")
                 audio_map = "[aout]"
             
-        # Video filters chain
-        curr_v = "0:v"
-        step_idx = 0
-        
-        # 1. Flip & Blur Effects
-        base_v_filters = []
-        flip_mode = effects.get("flip", "none")
-        if flip_mode == "horizontal":
-            base_v_filters.append("hflip")
-        elif flip_mode == "vertical":
-            base_v_filters.append("vflip")
-        elif flip_mode == "both":
-            base_v_filters.append("hflip,vflip")
-            
-        blur_cfg = effects.get("blur", {})
-        if blur_cfg.get("enabled", False):
-            strength = max(1, min(50, int(blur_cfg.get("strength", 5))))
-            base_v_filters.append(f"boxblur={strength}:1")
-            
-        if base_v_filters:
-            step_idx += 1
-            next_v = f"v_step{step_idx}"
-            filter_complex.append(f"[{curr_v}]{','.join(base_v_filters)}[{next_v}]")
-            curr_v = next_v
-            
-        # 2. Subtitles burn-in
+        # Video filter (Subtitle burn-in)
         if burn_subtitles and subtitle_ass_path and os.path.exists(subtitle_ass_path):
-            escaped_sub_path = str(Path(subtitle_ass_path).resolve()).replace("\\", "/").replace(":", "\\:")
-            step_idx += 1
-            next_v = f"v_step{step_idx}"
-            filter_complex.append(f"[{curr_v}]subtitles='{escaped_sub_path}'[{next_v}]")
-            curr_v = next_v
-
-        # 3. Logo overlay effect
-        if logo_input_idx is not None:
-            logo_w = max(20, min(1000, int(logo_cfg.get("width", 120))))
-            logo_opacity = max(0.05, min(1.0, float(logo_cfg.get("opacity", 0.85))))
-            logo_pos = logo_cfg.get("position", "top_right")
-            pos_map = {
-                "top_left": "30:30",
-                "top_center": "(main_w-overlay_w)/2:30",
-                "top_right": "main_w-overlay_w-30:30",
-                "center": "(main_w-overlay_w)/2:(main_h-overlay_h)/2",
-                "bottom_left": "30:main_h-overlay_h-30",
-                "bottom_center": "(main_w-overlay_w)/2:main_h-overlay_h-30",
-                "bottom_right": "main_w-overlay_w-30:main_h-overlay_h-30"
-            }
-            xy = pos_map.get(logo_pos, "main_w-overlay_w-30:30")
-            step_idx += 1
-            logo_prep = f"logo_prep{step_idx}"
-            filter_complex.append(f"[{logo_input_idx}:v]scale={logo_w}:-1,format=rgba,colorchannelmixer=aa={logo_opacity}[{logo_prep}]")
-            next_v = f"v_step{step_idx}"
-            filter_complex.append(f"[{curr_v}][{logo_prep}]overlay={xy}[{next_v}]")
-            curr_v = next_v
-
-        # 4. Text watermark effect
-        text_cfg = effects.get("text", {})
-        text_content = str(text_cfg.get("content", "")).strip()
-        if text_cfg.get("enabled", False) and text_content:
-            font_path = get_best_font_path()
-            font_part = f"fontfile='{font_path}':" if font_path else ""
-            font_size = max(12, min(150, int(text_cfg.get("font_size", 32))))
-            font_color = str(text_cfg.get("color", "#FFFFFF")).replace("#", "0x")
-            if not font_color.startswith("0x") and not font_color.isalpha():
-                font_color = "white"
-            box_enabled = 1 if text_cfg.get("box", True) else 0
-            text_pos = text_cfg.get("position", "top_center")
-            text_pos_map = {
-                "top_left": "x=30:y=30",
-                "top_center": "x=(w-text_w)/2:y=30",
-                "top_right": "x=w-text_w-30:y=30",
-                "center": "x=(w-text_w)/2:y=(h-text_h)/2",
-                "bottom_left": "x=30:y=h-text_h-30",
-                "bottom_center": "x=(w-text_w)/2:y=h-text_h-30",
-                "bottom_right": "x=w-text_w-30:y=h-text_h-30"
-            }
-            xy_str = text_pos_map.get(text_pos, "x=(w-text_w)/2:y=30")
+            escaped_path = str(Path(subtitle_ass_path).resolve()).replace("\\", "/").replace(":", "\\:")
+            filter_complex.append(f"[0:v]subtitles='{escaped_path}'[vout]")
+            video_map = "[vout]"
+        else:
+            video_map = "0:v"
             
-            parent_dir = Path(output_video_path).parent
-            temp_text_file = parent_dir / f"watermark_text_{int(time.time())}.txt"
-            with open(temp_text_file, "w", encoding="utf-8") as tf:
-                tf.write(text_content)
-            escaped_text_file = str(temp_text_file.resolve()).replace("\\", "/").replace(":", "\\:")
-            
-            step_idx += 1
-            next_v = f"v_step{step_idx}"
-            filter_complex.append(
-                f"[{curr_v}]drawtext={font_part}textfile='{escaped_text_file}':fontsize={font_size}:fontcolor={font_color}:box={box_enabled}:boxcolor=black@0.6:boxborderw=8:{xy_str}[{next_v}]"
-            )
-            curr_v = next_v
-            
-        video_map = f"[{curr_v}]" if curr_v != "0:v" else "0:v"
-        
         if filter_complex:
             cmd.extend(["-filter_complex", ";".join(filter_complex)])
             
@@ -421,7 +322,7 @@ def render_dubbed_video(
         ])
         
         if progress_callback:
-            progress_callback(30, "FFmpeg កំពុង Render វីដេអូ និងបញ្ចូលសំឡេង/Effect...")
+            progress_callback(30, "FFmpeg កំពុង Render វីដេអូ និងបញ្ចូលសំឡេង...")
             
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
         stdout, stderr = proc.communicate()
@@ -441,7 +342,6 @@ def render_dubbed_video(
                     bg_volume_percent=bg_volume_percent,
                     mute_original=mute_original,
                     burn_subtitles=False,
-                    effects=effects,
                     progress_callback=progress_callback,
                     bgm_audio_path=bgm_audio_path,
                     use_bgm_only=use_bgm_only
@@ -455,10 +355,4 @@ def render_dubbed_video(
     except Exception as e:
         print(f"Exception during video render: {e}")
         return False
-    finally:
-        if temp_text_file and temp_text_file.exists():
-            try:
-                temp_text_file.unlink(missing_ok=True)
-            except Exception:
-                pass
 

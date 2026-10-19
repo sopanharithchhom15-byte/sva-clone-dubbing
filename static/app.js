@@ -122,6 +122,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnInstall.style.display = 'flex';
   }
 
+  initAppearance();
   await loadNetworkInfo();
   await loadSettings();
   await loadVoices();
@@ -1006,17 +1007,6 @@ async function loadSessionState() {
       renderSubtitles();
     }
 
-    if (state.logo_url) {
-      const wrap = document.getElementById("logoPreviewWrap");
-      const img = document.getElementById("logoPreviewImg");
-      const fn = document.getElementById("logoFileName");
-      if (wrap && img && fn) {
-        img.src = state.logo_url;
-        fn.innerText = state.logo_name || "Logo";
-        wrap.style.display = "flex";
-      }
-    }
-
     if (state.has_rendered_video) {
       const vPlayer = document.getElementById("renderedVideoPlayer");
       if (vPlayer) {
@@ -1629,85 +1619,7 @@ async function startBatchTts(force = false) {
   }
 }
 
-// 9. Video Effects Controls
-function toggleEffectOption(effectType) {
-  if (effectType === "blur") {
-    const chk = document.getElementById("checkEffectBlur");
-    const body = document.getElementById("effectBodyBlur");
-    const card = document.getElementById("effectCardBlur");
-    if (chk && body && card) {
-      body.style.display = chk.checked ? "block" : "none";
-      card.classList.toggle("active", chk.checked);
-    }
-  } else if (effectType === "text") {
-    const chk = document.getElementById("checkEffectText");
-    const body = document.getElementById("effectBodyText");
-    const card = document.getElementById("effectCardText");
-    if (chk && body && card) {
-      body.style.display = chk.checked ? "block" : "none";
-      card.classList.toggle("active", chk.checked);
-    }
-  } else if (effectType === "logo") {
-    const chk = document.getElementById("checkEffectLogo");
-    const body = document.getElementById("effectBodyLogo");
-    const card = document.getElementById("effectCardLogo");
-    if (chk && body && card) {
-      body.style.display = chk.checked ? "block" : "none";
-      card.classList.toggle("active", chk.checked);
-    }
-  }
-}
-
-async function handleLogoUpload(input) {
-  if (!input.files || !input.files.length) return;
-  const file = input.files[0];
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("session_id", gSessionId);
-  
-  try {
-    const res = await fetch("/api/upload_logo", {
-      method: "POST",
-      body: fd
-    });
-    const data = await res.json();
-    if (data.success) {
-      const wrap = document.getElementById("logoPreviewWrap");
-      const img = document.getElementById("logoPreviewImg");
-      const fn = document.getElementById("logoFileName");
-      if (wrap && img && fn) {
-        img.src = data.logo_url;
-        fn.innerText = data.logo_name;
-        wrap.style.display = "flex";
-      }
-      const chk = document.getElementById("checkEffectLogo");
-      if (chk && !chk.checked) {
-        chk.checked = true;
-        toggleEffectOption("logo");
-      }
-    } else {
-      alert("❌ " + (data.error || "មិនអាច Upload Logo បានទេ"));
-    }
-  } catch (err) {
-    alert("❌ កំហុស Upload Logo: " + err.message);
-  }
-}
-
-async function removeLogo() {
-  try {
-    await fetch(`/api/delete_logo?session_id=${gSessionId}`, { method: "DELETE" });
-    const wrap = document.getElementById("logoPreviewWrap");
-    const img = document.getElementById("logoPreviewImg");
-    const input = document.getElementById("inputLogoFile");
-    if (wrap) wrap.style.display = "none";
-    if (img) img.src = "";
-    if (input) input.value = "";
-  } catch (err) {
-    console.error("Error removing logo:", err);
-  }
-}
-
-// 10. Video Rendering
+// 9. Video Rendering
 async function startRenderVideo() {
   const progressWrap = document.getElementById("renderProgressWrap");
   const progressMsg = document.getElementById("renderProgressMsg");
@@ -1745,29 +1657,7 @@ async function startRenderVideo() {
   progressWrap.style.display = "block";
   progressBar.style.width = "10%";
   progressPct.innerText = "10%";
-  progressMsg.innerText = "កំពុងរៀបចំ Render វីដេអូ និង Effect...";
-  
-  const effectsPayload = {
-    blur: {
-      enabled: document.getElementById("checkEffectBlur")?.checked || false,
-      strength: parseInt(document.getElementById("inputBlurStrength")?.value) || 5
-    },
-    flip: document.getElementById("selectFlipMode")?.value || "none",
-    text: {
-      enabled: document.getElementById("checkEffectText")?.checked || false,
-      content: (document.getElementById("inputTextContent")?.value || "").trim(),
-      position: document.getElementById("selectTextPos")?.value || "top_center",
-      font_size: parseInt(document.getElementById("inputTextFontSize")?.value) || 32,
-      color: document.getElementById("inputTextColor")?.value || "#FFFFFF",
-      box: document.getElementById("checkTextBox")?.checked ?? true
-    },
-    logo: {
-      enabled: document.getElementById("checkEffectLogo")?.checked || false,
-      position: document.getElementById("selectLogoPos")?.value || "top_right",
-      width: parseInt(document.getElementById("inputLogoWidth")?.value) || 120,
-      opacity: (parseInt(document.getElementById("inputLogoOpacity")?.value) || 85) / 100.0
-    }
-  };
+  progressMsg.innerText = "កំពុងរៀបចំ Render វីដេអូ...";
 
   const payload = {
     session_id: gSessionId,
@@ -1775,8 +1665,7 @@ async function startRenderVideo() {
     bg_volume: parseInt(document.getElementById("inputBgVol").value),
     mute_original: document.getElementById("checkMuteOrig").checked,
     use_bgm_only: document.getElementById("checkUseBgmOnly") ? document.getElementById("checkUseBgmOnly").checked : true,
-    burn_subtitles: document.getElementById("checkBurnSubs").checked,
-    effects: effectsPayload
+    burn_subtitles: document.getElementById("checkBurnSubs").checked
   };
   
   try {
@@ -2133,4 +2022,286 @@ async function startVocalSeparation() {
     alert("❌ Server error: " + e.message);
   }
 }
+
+/* ======================================================================
+   🎨 Appearance & Custom Theme Manager (Exact Match to User UI)
+   ====================================================================== */
+const THEME_PRESETS = {
+  purple_dream: {
+    name: "Purple Dream",
+    bg: "#4E007E",
+    fg: "#FFFFFF",
+    accent: "#00FF6F"
+  },
+  default_dark: {
+    name: "Default Dark",
+    bg: "#0F172A",
+    fg: "#F8FAFC",
+    accent: "#38BDF8"
+  },
+  oled_black: {
+    name: "OLED Pure Black",
+    bg: "#000000",
+    fg: "#F1F5F9",
+    accent: "#00E5FF"
+  },
+  cyberpunk_neon: {
+    name: "Cyberpunk Neon",
+    bg: "#12072B",
+    fg: "#FFFFFF",
+    accent: "#FF007F"
+  },
+  emerald_forest: {
+    name: "Emerald Forest",
+    bg: "#062B1E",
+    fg: "#ECFDF5",
+    accent: "#10B981"
+  },
+  midnight_navy: {
+    name: "Midnight Navy",
+    bg: "#0A192F",
+    fg: "#E6F1FF",
+    accent: "#64FFDA"
+  },
+  sunset_amber: {
+    name: "Sunset Amber",
+    bg: "#20100A",
+    fg: "#FFF7ED",
+    accent: "#F59E0B"
+  },
+  clean_light: {
+    name: "Clean Light",
+    bg: "#F8FAFC",
+    fg: "#0F172A",
+    accent: "#2563EB"
+  }
+};
+
+let gCurrentAppearance = {
+  preset: "default_dark",
+  bg: "#0F172A",
+  fg: "#F8FAFC",
+  accent: "#38BDF8"
+};
+
+function hexToRgb(hex) {
+  let c = (hex || "").replace("#", "").trim();
+  if (c.length === 3) c = c.split("").map(x => x + x).join("");
+  if (c.length !== 6) return { r: 15, g: 23, b: 42 };
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return { r: 15, g: 23, b: 42 };
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+}
+
+function rgbToHex(r, g, b) {
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  return "#" + [clamp(r), clamp(g), clamp(b)].map(x => x.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+function adjustLuminance(hex, factor) {
+  const { r, g, b } = hexToRgb(hex);
+  if (factor > 0) {
+    return rgbToHex(
+      r + (255 - r) * factor,
+      g + (255 - g) * factor,
+      b + (255 - b) * factor
+    );
+  } else {
+    const f = 1 + factor;
+    return rgbToHex(r * f, g * f, b * f);
+  }
+}
+
+function normalizeHex(val, fallback = "#0F172A") {
+  if (!val) return fallback;
+  let clean = val.replace("#", "").trim().toUpperCase();
+  if (clean.length === 3) clean = clean.split("").map(x => x + x).join("");
+  if (/^[0-9A-F]{6}$/i.test(clean)) return "#" + clean;
+  return fallback;
+}
+
+function applyTheme(bgHex, fgHex, accentHex, presetKey = "custom", persist = true) {
+  bgHex = normalizeHex(bgHex, "#0F172A");
+  fgHex = normalizeHex(fgHex, "#F8FAFC");
+  accentHex = normalizeHex(accentHex, "#38BDF8");
+
+  const bgRgb = hexToRgb(bgHex);
+  const fgRgb = hexToRgb(fgHex);
+  const isLight = (bgRgb.r * 0.299 + bgRgb.g * 0.587 + bgRgb.b * 0.114) > 160;
+
+  const bgSecondary = isLight ? adjustLuminance(bgHex, -0.06) : adjustLuminance(bgHex, 0.16);
+
+  const root = document.documentElement;
+  root.style.setProperty("--bg-primary", bgHex);
+  root.style.setProperty("--bg-secondary", bgSecondary);
+  root.style.setProperty("--bg-card", `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, 0.72)`);
+  root.style.setProperty("--bg-header", `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, 0.90)`);
+  root.style.setProperty("--bg-nav", `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, 0.96)`);
+  root.style.setProperty("--bg-modal", `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, 0.96)`);
+  root.style.setProperty("--border-color", isLight ? "rgba(0, 0, 0, 0.12)" : "rgba(255, 255, 255, 0.14)");
+  root.style.setProperty("--text-main", fgHex);
+  root.style.setProperty("--text-muted", `rgba(${fgRgb.r}, ${fgRgb.g}, ${fgRgb.b}, 0.65)`);
+  root.style.setProperty("--accent-color", accentHex);
+  root.style.setProperty("--accent-hover", adjustLuminance(accentHex, isLight ? -0.15 : 0.12));
+  root.style.setProperty("--accent-gradient", `linear-gradient(135deg, ${accentHex}, ${adjustLuminance(accentHex, 0.25)})`);
+
+  let metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute("content", bgHex);
+
+  gCurrentAppearance = {
+    preset: presetKey,
+    bg: bgHex,
+    fg: fgHex,
+    accent: accentHex
+  };
+
+  updateAppearanceUI(bgHex, fgHex, accentHex, presetKey);
+
+  if (persist) {
+    try {
+      localStorage.setItem("app_appearance", JSON.stringify(gCurrentAppearance));
+    } catch (e) {}
+  }
+}
+
+function updateAppearanceUI(bgHex, fgHex, accentHex, presetKey) {
+  const bgClean = bgHex.replace("#", "").toUpperCase();
+  const fgClean = fgHex.replace("#", "").toUpperCase();
+  const accentClean = accentHex.replace("#", "").toUpperCase();
+
+  // Settings Card Elements
+  const pSelect = document.getElementById("appearancePresetSelect");
+  if (pSelect) pSelect.value = (presetKey in THEME_PRESETS) ? presetKey : "custom";
+
+  const bgPicker = document.getElementById("themeColorBgPicker");
+  if (bgPicker) bgPicker.value = bgHex;
+  const bgSwatch = document.getElementById("themeColorBgSwatch");
+  if (bgSwatch) bgSwatch.style.backgroundColor = bgHex;
+  const bgHexInput = document.getElementById("themeColorBgHex");
+  if (bgHexInput && document.activeElement !== bgHexInput) bgHexInput.value = bgClean;
+
+  const fgPicker = document.getElementById("themeColorFgPicker");
+  if (fgPicker) fgPicker.value = fgHex;
+  const fgSwatch = document.getElementById("themeColorFgSwatch");
+  if (fgSwatch) fgSwatch.style.backgroundColor = fgHex;
+  const fgHexInput = document.getElementById("themeColorFgHex");
+  if (fgHexInput && document.activeElement !== fgHexInput) fgHexInput.value = fgClean;
+
+  const accentPicker = document.getElementById("themeColorAccentPicker");
+  if (accentPicker) accentPicker.value = accentHex;
+  const accentSwatch = document.getElementById("themeColorAccentSwatch");
+  if (accentSwatch) accentSwatch.style.backgroundColor = accentHex;
+  const accentHexInput = document.getElementById("themeColorAccentHex");
+  if (accentHexInput && document.activeElement !== accentHexInput) accentHexInput.value = accentClean;
+
+  // Modal Elements (Mirror)
+  const mSelect = document.getElementById("modalAppearancePresetSelect");
+  if (mSelect) mSelect.value = (presetKey in THEME_PRESETS) ? presetKey : "custom";
+
+  const mBgPicker = document.getElementById("modalThemeColorBgPicker");
+  if (mBgPicker) mBgPicker.value = bgHex;
+  const mBgSwatch = document.getElementById("modalThemeColorBgSwatch");
+  if (mBgSwatch) mBgSwatch.style.backgroundColor = bgHex;
+  const mBgHexInput = document.getElementById("modalThemeColorBgHex");
+  if (mBgHexInput && document.activeElement !== mBgHexInput) mBgHexInput.value = bgClean;
+
+  const mFgPicker = document.getElementById("modalThemeColorFgPicker");
+  if (mFgPicker) mFgPicker.value = fgHex;
+  const mFgSwatch = document.getElementById("modalThemeColorFgSwatch");
+  if (mFgSwatch) mFgSwatch.style.backgroundColor = fgHex;
+  const mFgHexInput = document.getElementById("modalThemeColorFgHex");
+  if (mFgHexInput && document.activeElement !== mFgHexInput) mFgHexInput.value = fgClean;
+
+  const mAccentPicker = document.getElementById("modalThemeColorAccentPicker");
+  if (mAccentPicker) mAccentPicker.value = accentHex;
+  const mAccentSwatch = document.getElementById("modalThemeColorAccentSwatch");
+  if (mAccentSwatch) mAccentSwatch.style.backgroundColor = accentHex;
+  const mAccentHexInput = document.getElementById("modalThemeColorAccentHex");
+  if (mAccentHexInput && document.activeElement !== mAccentHexInput) mAccentHexInput.value = accentClean;
+
+  const badge = document.getElementById("themeStatusBadge");
+  if (badge) {
+    const pName = THEME_PRESETS[presetKey] ? THEME_PRESETS[presetKey].name : "Custom";
+    badge.innerText = pName;
+  }
+}
+
+function applyPresetTheme(presetKey) {
+  const p = THEME_PRESETS[presetKey];
+  if (p) {
+    applyTheme(p.bg, p.fg, p.accent, presetKey, true);
+    if (typeof showToastNotification === "function") {
+      showToastNotification(`🎨 រូបរាងបានប្តូរទៅជា៖ ${p.name}`);
+    }
+  }
+}
+
+function onCustomColorChange(type, hexVal) {
+  if (!hexVal) return;
+  const normalized = normalizeHex(hexVal, gCurrentAppearance[type]);
+  gCurrentAppearance[type] = normalized;
+
+  // Check if current colors match any preset exactly
+  let matchedPreset = "custom";
+  for (const [key, preset] of Object.entries(THEME_PRESETS)) {
+    if (
+      preset.bg.toUpperCase() === gCurrentAppearance.bg.toUpperCase() &&
+      preset.fg.toUpperCase() === gCurrentAppearance.fg.toUpperCase() &&
+      preset.accent.toUpperCase() === gCurrentAppearance.accent.toUpperCase()
+    ) {
+      matchedPreset = key;
+      break;
+    }
+  }
+
+  applyTheme(gCurrentAppearance.bg, gCurrentAppearance.fg, gCurrentAppearance.accent, matchedPreset, true);
+}
+
+function onHexInputChange(type, rawVal) {
+  if (!rawVal) return;
+  let clean = rawVal.replace("#", "").trim();
+  if (clean.length === 6 && /^[0-9A-Fa-f]{6}$/.test(clean)) {
+    const hex = "#" + clean.toUpperCase();
+    onCustomColorChange(type, hex);
+  }
+}
+
+function resetAppearanceToDefault() {
+  applyPresetTheme("default_dark");
+}
+
+function openAppearanceModal() {
+  const m = document.getElementById("appearanceModal");
+  if (m) {
+    updateAppearanceUI(gCurrentAppearance.bg, gCurrentAppearance.fg, gCurrentAppearance.accent, gCurrentAppearance.preset);
+    m.style.display = "flex";
+  }
+}
+
+function closeAppearanceModal() {
+  const m = document.getElementById("appearanceModal");
+  if (m) m.style.display = "none";
+}
+
+function initAppearance() {
+  try {
+    const raw = localStorage.getItem("app_appearance");
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved && saved.bg && saved.fg && saved.accent) {
+        applyTheme(saved.bg, saved.fg, saved.accent, saved.preset || "custom", false);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Error reading stored appearance:", e);
+  }
+  // Default dark theme
+  applyTheme("#0F172A", "#F8FAFC", "#38BDF8", "default_dark", false);
+}
+
 
