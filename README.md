@@ -1,3 +1,13 @@
+---
+title: SVA Clone Dubbing Studio
+emoji: 🎬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🎬 SVA Clone Dubbing (Web APP តាមទូរស័ព្ទ & កុំព្យូទ័រ)
 
 កម្មវិធីកាត់ត បញ្ចូលសំឡេង (Dubbing) និងក្លូនសំឡេង AI ដោយស្វ័យប្រវត្តិតាមរយៈទូរស័ព្ទដៃ និងកុំព្យូទ័រ។

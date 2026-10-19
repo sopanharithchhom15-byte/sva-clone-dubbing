@@ -19,14 +19,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all project files
 COPY . .
 
-# Ensure data directories exist
-RUN mkdir -p data/uploads data/outputs data/voice_bank data/temp
+# Ensure data directories exist and have open permissions
+RUN mkdir -p data/uploads data/outputs data/voice_bank data/temp && chmod -R 777 /app
 
 ENV PYTHONUNBUFFERED=1
 ENV IS_CLOUD=true
-ENV PORT=8000
+ENV PORT=7860
 
+EXPOSE 7860
 EXPOSE 8000
 
-# Start Uvicorn server with dynamic PORT support
-CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start Uvicorn server with dynamic PORT support (default 7860 for Hugging Face Spaces)
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-7860}"]
+
