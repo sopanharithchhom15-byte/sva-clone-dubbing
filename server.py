@@ -224,9 +224,17 @@ async def api_voice_bank_samples():
 
 @app.get("/api/voice_bank/audio/{filename}")
 async def api_voice_bank_audio(filename: str):
-    f = VOICE_BANK_DIR / filename
+    import urllib.parse
+    clean_name = urllib.parse.unquote(filename)
+    f = VOICE_BANK_DIR / clean_name
+    if not f.exists():
+        f = VOICE_BANK_DIR / filename
     if f.exists():
         return FileResponse(str(f))
+    # Check if file exists ignoring case
+    for item in VOICE_BANK_DIR.iterdir():
+        if item.name.lower() == clean_name.lower() or item.name.lower() == filename.lower():
+            return FileResponse(str(item))
     raise HTTPException(status_code=404, detail="Audio file not found")
 
 @app.post("/api/voice_bank/update_character")

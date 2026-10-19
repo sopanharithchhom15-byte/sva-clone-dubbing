@@ -87,13 +87,21 @@ def build_master_dub_track(
                             next_start_ms = int(n_start_sec * 1000)
                             break
                             
-                    # If this clip reaches into the next speaker's start time,
-                    # gently fade out the tail before the next speaker begins so there is zero overlap
+                    # Avoid cutting off words at the end of segments
+                    # Allow speech natural room so words finish completely without abrupt cuts
                     if next_start_ms is not None and next_start_ms > target_start_ms:
                         available_ms = next_start_ms - target_start_ms
-                        if len(clip) > available_ms and available_ms > 80:
-                            fade_ms = min(80, max(20, int(available_ms * 0.1)))
-                            clip = clip[:available_ms].fade_out(fade_ms)
+                        overlap_ms = len(clip) - available_ms
+                        # Only if speech substantially runs past the next segment start (> 500ms),
+                        # allow up to 350ms natural bleed so ending syllables are preserved
+                        if overlap_ms > 500 and available_ms > 600:
+                            allowed_ms = available_ms + 350
+                            if len(clip) > allowed_ms:
+                                fade_ms = min(80, max(30, int(allowed_ms * 0.05)))
+                                clip = clip[:allowed_ms].fade_out(fade_ms)
+                        else:
+                            if len(clip) > 40:
+                                clip = clip.fade_out(25)
                     else:
                         # Natural trailing fade-out
                         if len(clip) > 40:

@@ -49,7 +49,10 @@ def get_voxcpm_client(endpoint_url: str = "openbmb/VoxCPM-Demo", hf_token: str =
         
     from gradio_client import Client
     if hf_token:
-        client = Client(clean_endpoint, hf_token=hf_token)
+        try:
+            client = Client(clean_endpoint, token=hf_token)
+        except TypeError:
+            client = Client(clean_endpoint, hf_token=hf_token)
     else:
         client = Client(clean_endpoint)
         
@@ -101,6 +104,9 @@ async def generate_voxcpm_tts(
                 res_file = result
                 
             if res_file and os.path.exists(res_file):
+                out_dir = os.path.dirname(output_path)
+                if out_dir:
+                    os.makedirs(out_dir, exist_ok=True)
                 shutil.copy(res_file, output_path)
                 return True
             else:
@@ -120,7 +126,38 @@ async def generate_voxcpm_tts(
     raise last_err
 
 import subprocess
+import re
+import shutil
 from engine.transcriber import get_media_duration_seconds, srt_time_to_seconds
+
+def apply_audio_speedup(audio_path: str, speed_factor: float) -> bool:
+    """
+    Speeds up an audio file using FFmpeg's atempo filter without changing the pitch.
+    Clamped safely to 1.05x - 1.38x to keep speech natural, clear, and easy to understand.
+    """
+    try:
+        if speed_factor <= 1.01:
+            return True
+        clamped_speed = min(1.38, max(1.05, float(speed_factor)))
+        p = Path(audio_path)
+        temp_out = p.parent / f"speedup_tmp_{p.stem}{p.suffix}"
+        
+        cmd = [
+            "ffmpeg", "-y", "-i", str(p),
+            "-filter:a", f"atempo={clamped_speed:.3f}",
+            "-vn", str(temp_out)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode == 0 and temp_out.exists() and temp_out.stat().st_size > 0:
+            shutil.move(str(temp_out), str(p))
+            return True
+        else:
+            if temp_out.exists():
+                temp_out.unlink()
+            return False
+    except Exception as e:
+        print(f"Error applying audio speedup to {audio_path}: {e}")
+        return False
 
 async def generate_segment_voice(
     segment: Dict[str, Any], 
@@ -131,8 +168,35 @@ async def generate_segment_voice(
     """Generates voice for a single subtitle segment according to its assigned voice and settings"""
     voice_id = segment.get("voice", "narrator_male")
     vcfg = voice_config_override or find_voice_config(voice_id)
-    text = segment.get("text", "").strip() or "..."
+    raw_text = segment.get("text", "").strip() or "..."
     
+    # Clean bracketed speaker tags/sound effects so TTS doesn't vocalize them
+    clean_text = re.sub(r'\[.*?\]|\(.*?\)', '', raw_text).strip()
+    if not clean_text:
+        clean_text = raw_text
+
+    # Calculate allocated slot duration from timestamps
+    start_sec = segment.get("start_sec", 0.0)
+    if not start_sec and segment.get("start"):
+        start_sec = srt_time_to_seconds(segment["start"])
+        
+    end_sec = segment.get("end_sec", 0.0)
+    if not end_sec and segment.get("end"):
+        end_sec = srt_time_to_seconds(segment["end"])
+        
+    slot_sec = (end_sec - start_sec) if (end_sec > start_sec) else 0.0
+    
+    # Calculate density: Khmer characters per second
+    # Standard speech ~8-11 char/sec. If > 12 chars/sec, text is dense for this slot
+    char_count = len(clean_text.replace(" ", ""))
+    dense_rate_bonus = 0
+    if slot_sec > 0.5 and char_count > 0:
+        chars_per_sec = char_count / slot_sec
+        if chars_per_sec > 13:
+            dense_rate_bonus = 15
+        elif chars_per_sec > 10.5:
+            dense_rate_bonus = 10
+
     provider = vcfg.get("provider", "edge_tts")
     
     # If the character itself has a custom ref_audio in voice_bank, use VoxCPM
@@ -147,23 +211,38 @@ async def generate_segment_voice(
     if provider == "voxcpm" and ref_audio_full:
         endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
         token = settings.get("hf_token", "")
-        # Call VoxCPM with automatic queue retry - never fall back to Piseth/Sreymom for cloned characters!
+        # Call VoxCPM with automatic queue retry
         await generate_voxcpm_tts(
-            text=text,
+            text=clean_text,
             ref_audio_path=ref_audio_full,
             output_path=str(output_file),
             endpoint_url=endpoint,
             hf_token=token,
             max_retries=4
         )
-        return True
     else:
         # Edge TTS (Only for characters configured for Edge TTS, not cloned characters)
         voice_code = vcfg.get("voice_code", "km-KH-PisethNeural")
-        rate = vcfg.get("rate", "+0%")
+        rate_str = vcfg.get("rate", "+0%")
+        # For dense segments with default rate, give slight initial rate boost (+10% to +15%)
+        if dense_rate_bonus > 0 and (rate_str == "+0%" or not rate_str):
+            rate_str = f"+{dense_rate_bonus}%"
         pitch = vcfg.get("pitch", "+0Hz")
-        await generate_edge_tts(text, voice_code, rate, pitch, str(output_file))
-        return True
+        await generate_edge_tts(clean_text, voice_code, rate_str, pitch, str(output_file))
+
+    # Dynamic post-generation duration adjustment:
+    # If the generated speech exceeds the subtitle time slot, speed it up smoothly
+    # without cutting off words or changing voice pitch
+    if output_file.exists() and slot_sec > 0.5:
+        actual_duration = get_media_duration_seconds(str(output_file))
+        if actual_duration > (slot_sec + 0.15):
+            needed_speed = round(actual_duration / slot_sec, 2)
+            target_speed = min(1.35, max(1.05, needed_speed))
+            if target_speed >= 1.05:
+                print(f"[TTS tempo] Segment duration {actual_duration:.2f}s > slot {slot_sec:.2f}s. Applying dynamic atempo={target_speed}x")
+                apply_audio_speedup(str(output_file), target_speed)
+
+    return True
 
 async def generate_voice_preview(
     voice_id: str, 

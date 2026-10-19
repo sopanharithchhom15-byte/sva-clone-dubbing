@@ -12,11 +12,6 @@ data/temp/*
 !data/temp/.gitkeep
 data/sessions/*
 !data/sessions/.gitkeep
-data/voice_bank/*.mp3
-data/voice_bank/*.MP3
-data/voice_bank/*.wav
-data/voice_bank/*.WAV
-
 # Local settings
 data/settings.json
 

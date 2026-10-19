@@ -32,10 +32,10 @@ DEFAULT_SETTINGS = {
     "app_name": "SVA Clone Dubbing",
     "gemini_api_key": DEFAULT_GEMINI_KEY,
     "gemini_model": "gemini-3.8-flash",
-    "tts_provider": "edge_tts", # "edge_tts" or "voxcpm"
+    "tts_provider": "voxcpm", # "edge_tts" or "voxcpm"
     "voxcpm_endpoint": "https://openbmb-voxcpm-demo.hf.space",
     "voxcpm_space_id": "openbmb/VoxCPM-Demo",
-    "hf_token": "",
+    "hf_token": os.environ.get("HF_TOKEN", ""),
     "default_voice": "km-KH-PisethNeural",
     "dub_volume": 120,
     "bg_volume": 20,
@@ -44,7 +44,9 @@ DEFAULT_SETTINGS = {
     "burn_subtitles": True,
     "subtitle_font_size": 22,
     "subtitle_color": "&H00FFFFFF",
-    "subtitle_bg": True
+    "subtitle_bg": True,
+    "auto_speedup_dense": True,
+    "speedup_percent": 25
 }
 
 def load_settings() -> dict:

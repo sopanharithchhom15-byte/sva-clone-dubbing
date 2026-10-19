@@ -10,12 +10,20 @@ echo.
 echo ដោយសារ GitHub មិនអនុញ្ញាតឱ្យប្រើ Password ធម្មតាទេ 
 echo GitHub តម្រូវឱ្យប្រើ Personal Access Token (PAT)។
 echo.
-echo 💡 ប្រសិនបើមិនទាន់មាន Token ទេ សូមបើក Link នេះដើម្បីយក (៣០ វិនាទី)៖
-echo 👉 https://github.com/settings/tokens/new
-echo (គ្រាន់តែគ្រីសធិកលើ 'repo' រួចចុច Generate Token យកលេខកូដមក Paste)
+echo 💡 ប្រសិនបើមិនទាន់មាន GitHub Token ទេ៖
+echo កម្មវិធីនឹងបើកទំព័រ GitHub Token ឱ្យអ្នកដោយស្វ័យប្រវត្តិ (គ្រាន់តែចុច Generate Token ហើយ Copy យកមក Paste)៖
+echo 👉 https://github.com/settings/tokens/new?scopes=repo&description=RenderDeploy
 echo.
 echo ======================================================================
-set /p GH_TOKEN="សូមបិទភ្ជាប់ (Paste) GitHub Token របស់អ្នកនៅទីនេះ: "
+set /p GH_TOKEN="សូមបិទភ្ជាប់ (Paste) GitHub Token របស់អ្នកនៅទីនេះ (ឬចុច Enter ដើម្បីបើកយក Token លើ Browser): "
+
+if "%GH_TOKEN%"=="" (
+    start https://github.com/settings/tokens/new?scopes=repo&description=RenderDeploy
+    echo.
+    echo កំពុងបើក Browser... សូមចុចប៊ូតុងពណ៌បៃតង 'Generate token' នៅខាងក្រោមបង្អស់នៃទំព័រ GitHub រួចចម្លង (Copy) លេខកូដមក Paste នៅខាងក្រោមនេះ៖
+    echo.
+    set /p GH_TOKEN="សូម Paste GitHub Token នៅទីនេះម្តងទៀត: "
+)
 
 if "%GH_TOKEN%"=="" (
     echo [!] អ្នកមិនបានបញ្ចូល Token ឡើយ!

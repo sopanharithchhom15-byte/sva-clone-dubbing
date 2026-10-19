@@ -770,7 +770,7 @@ function onCharSampleSelected(val) {
   const box = document.getElementById("charAudioPreviewBox");
   const player = document.getElementById("charSampleAudioPlayer");
   if (val) {
-    player.src = `/api/voice_bank/audio/${val}?t=${Date.now()}`;
+    player.src = `/api/voice_bank/audio/${encodeURIComponent(val)}?t=${Date.now()}`;
     box.style.display = "block";
   } else {
     box.style.display = "none";
@@ -791,8 +791,14 @@ function previewUploadedSample(input) {
 }
 
 function playRefAudio(filename) {
-  gAudio.src = `/api/voice_bank/audio/${filename}?t=${Date.now()}`;
-  gAudio.play().catch(e => alert("មិនអាចចាក់សំឡេងគំរូបានឡើយ: " + e.message));
+  if (!filename) {
+    alert("ពុំមានឯកសារសំឡេងគំរូឡើយ");
+    return;
+  }
+  gAudio.src = `/api/voice_bank/audio/${encodeURIComponent(filename)}?t=${Date.now()}`;
+  gAudio.play().catch(e => {
+    alert("មិនអាចចាក់សំឡេងគំរូបានឡើយ៖ ឯកសារសំឡេងគំរូ (" + filename + ") មិនមាននៅលើ Server នេះទេ។ ប្រសិនបើអ្នកកំពុងប្រើប្រាស់ Render.com សូមប្តូរមកប្រើតាម Link Cloudflare លើកុំព្យូទ័រផ្ទាល់របស់អ្នកវិញ ព្រោះឯកសារសំឡេងទាំងអស់ស្ថិតនៅលើកុំព្យូទ័រនេះ។");
+  });
 }
 
 async function quickPreviewCharacter(charId) {
