@@ -10,6 +10,8 @@ data/outputs/*
 !data/outputs/.gitkeep
 data/temp/*
 !data/temp/.gitkeep
+data/sessions/*
+!data/sessions/.gitkeep
 
 # Local settings
 data/settings.json
