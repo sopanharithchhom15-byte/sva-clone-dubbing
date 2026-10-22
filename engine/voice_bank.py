@@ -3,7 +3,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from config import VOICE_BANK_DIR
+from config import VOICE_BANK_DIR, BASE_DIR
 
 DEFAULT_EDGE_CHARACTERS = [
     {
@@ -132,9 +132,12 @@ CUSTOM_VOICES_FILE = VOICE_BANK_DIR / "custom_voices.json"
 CHARACTER_OVERRIDES_FILE = VOICE_BANK_DIR / "character_overrides.json"
 
 def get_character_overrides() -> Dict[str, Any]:
-    if CHARACTER_OVERRIDES_FILE.exists():
+    f_path = CHARACTER_OVERRIDES_FILE
+    if not f_path.exists() and (BASE_DIR / "data" / "voice_bank" / "character_overrides.json").exists():
+        f_path = BASE_DIR / "data" / "voice_bank" / "character_overrides.json"
+    if f_path.exists():
         try:
-            with open(CHARACTER_OVERRIDES_FILE, "r", encoding="utf-8") as f:
+            with open(f_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -147,13 +150,22 @@ def save_character_overrides(overrides: Dict[str, Any]):
 def get_available_audio_samples() -> List[Dict[str, str]]:
     """Returns list of audio files available in the voice bank directory"""
     samples = []
-    if VOICE_BANK_DIR.exists():
-        for p in VOICE_BANK_DIR.iterdir():
-            if p.is_file() and p.suffix.lower() in [".mp3", ".wav", ".m4a", ".ogg", ".aac"]:
-                samples.append({
-                    "filename": p.name,
-                    "url": f"/api/voice_bank/audio/{p.name}"
-                })
+    seen = set()
+    dirs_to_check = [VOICE_BANK_DIR]
+    bundle_vb = BASE_DIR / "data" / "voice_bank"
+    if bundle_vb != VOICE_BANK_DIR and bundle_vb.exists():
+        dirs_to_check.append(bundle_vb)
+
+    for vdir in dirs_to_check:
+        if vdir.exists():
+            for p in vdir.iterdir():
+                if p.is_file() and p.suffix.lower() in [".mp3", ".wav", ".m4a", ".ogg", ".aac"]:
+                    if p.name not in seen:
+                        seen.add(p.name)
+                        samples.append({
+                            "filename": p.name,
+                            "url": f"/api/voice_bank/audio/{p.name}"
+                        })
     return samples
 
 def get_all_voices() -> List[Dict[str, Any]]:

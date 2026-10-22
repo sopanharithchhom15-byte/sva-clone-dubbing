@@ -6,14 +6,50 @@ from pathlib import Path
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+
+# Check if running in a Read-Only environment (e.g. Vercel Serverless / AWS Lambda /var/task)
+IS_READ_ONLY_FS = False
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or "/var/task" in str(BASE_DIR):
+    IS_READ_ONLY_FS = True
+else:
+    try:
+        test_dir = BASE_DIR / "data"
+        test_dir.mkdir(parents=True, exist_ok=True)
+        test_file = test_dir / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+    except (OSError, PermissionError):
+        IS_READ_ONLY_FS = True
+
+if IS_READ_ONLY_FS:
+    DATA_DIR = Path("/tmp") / "data"
+else:
+    DATA_DIR = BASE_DIR / "data"
+
 UPLOAD_DIR = DATA_DIR / "uploads"
 OUTPUT_DIR = DATA_DIR / "outputs"
 VOICE_BANK_DIR = DATA_DIR / "voice_bank"
 TEMP_DIR = DATA_DIR / "temp"
 
 for d in [DATA_DIR, UPLOAD_DIR, OUTPUT_DIR, VOICE_BANK_DIR, TEMP_DIR]:
-    d.mkdir(parents=True, exist_ok=True)
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
+# If running in /tmp, seed voice_bank files and character configs from bundle
+if IS_READ_ONLY_FS:
+    src_vb = BASE_DIR / "data" / "voice_bank"
+    if src_vb.exists():
+        import shutil
+        for item in src_vb.iterdir():
+            target = VOICE_BANK_DIR / item.name
+            if not target.exists():
+                try:
+                    if item.is_file():
+                        shutil.copy2(item, target)
+                except Exception:
+                    pass
 
 SETTINGS_FILE = DATA_DIR / "settings.json"
 
@@ -50,9 +86,12 @@ DEFAULT_SETTINGS = {
 }
 
 def load_settings() -> dict:
-    if SETTINGS_FILE.exists():
+    f_path = SETTINGS_FILE
+    if not f_path.exists() and (BASE_DIR / "data" / "settings.json").exists():
+        f_path = BASE_DIR / "data" / "settings.json"
+    if f_path.exists():
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            with open(f_path, "r", encoding="utf-8") as f:
                 saved = json.load(f)
                 res = DEFAULT_SETTINGS.copy()
                 res.update(saved)

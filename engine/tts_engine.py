@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 import edge_tts
 from engine.voice_bank import get_all_voices
-from config import VOICE_BANK_DIR
+from config import VOICE_BANK_DIR, BASE_DIR
 
 def find_voice_config(voice_id: str) -> Dict[str, Any]:
     all_voices = get_all_voices()
@@ -204,6 +204,8 @@ async def generate_segment_voice(
     ref_audio_full = None
     if ref_audio_name:
         ref_path = VOICE_BANK_DIR / ref_audio_name
+        if not ref_path.exists() and (BASE_DIR / "data" / "voice_bank" / ref_audio_name).exists():
+            ref_path = BASE_DIR / "data" / "voice_bank" / ref_audio_name
         if ref_path.exists():
             ref_audio_full = str(ref_path)
             provider = "voxcpm"
