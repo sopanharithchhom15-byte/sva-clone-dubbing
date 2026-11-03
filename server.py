@@ -624,7 +624,15 @@ async def api_generate_voice_batch(request: Request, bg_tasks: BackgroundTasks):
     
     sdir = get_session_dir(session_id)
     state = load_session_state(sdir)
-    subs = state.get("subtitles", [])
+
+    body_subs = body.get("subtitles")
+    if body_subs and isinstance(body_subs, list) and len(body_subs) > 0:
+        subs = body_subs
+        state["subtitles"] = subs
+        save_session_state(sdir, state)
+    else:
+        subs = state.get("subtitles", [])
+
     if not subs:
         return JSONResponse({"success": False, "error": "មិនទាន់មាន Subtitle សម្រាប់បង្កើតសំឡេងឡើយ!"}, status_code=400)
         
@@ -648,7 +656,9 @@ async def run_batch_tts_worker(sdir: Path, subs: List[Dict[str, Any]], indices: 
     
     settings = load_settings()
     vdir = sdir / "voices"
+    vdir.mkdir(parents=True, exist_ok=True)
     
+    successful_count = 0
     for i, idx in enumerate(indices):
         seg = subs[idx]
         prog["active_index"] = idx
@@ -659,11 +669,22 @@ async def run_batch_tts_worker(sdir: Path, subs: List[Dict[str, Any]], indices: 
         out_file = vdir / f"voice_{idx}.mp3"
         try:
             await generate_segment_voice(seg, out_file, settings)
-            seg["has_audio"] = True
-            # Short breathing interval to avoid HuggingFace queue saturation
-            await asyncio.sleep(1.2)
+            if out_file.exists() and out_file.stat().st_size > 0:
+                seg["has_audio"] = True
+                successful_count += 1
+            else:
+                seg["has_audio"] = False
         except Exception as e:
             print(f"Error TTS line {idx}: {e}")
+            seg["has_audio"] = False
+            
+        # Periodically save state so generated voice progress is preserved live
+        if (i + 1) % 2 == 0 or (i + 1) == total:
+            state = load_session_state(sdir)
+            state["subtitles"] = subs
+            save_session_state(sdir, state)
+
+        await asyncio.sleep(0.3)
             
     # Auto build master dub track
     state = load_session_state(sdir)
@@ -676,7 +697,7 @@ async def run_batch_tts_worker(sdir: Path, subs: List[Dict[str, Any]], indices: 
     prog.update({
         "is_running": False,
         "percent": 100,
-        "message": f"បង្កើតសំឡេងជោគជ័យគ្រប់បន្ទាត់ ({total} បន្ទាត់)!"
+        "message": f"បង្កើតសំឡេងជោគជ័យ {successful_count}/{total} បន្ទាត់!"
     })
 
 @app.get("/api/tts_progress")

@@ -26,11 +26,27 @@ def find_voice_config(voice_id: str) -> Dict[str, Any]:
     return all_voices[0]
 
 async def generate_edge_tts(text: str, voice_code: str, rate: str, pitch: str, output_path: str):
-    """Generate audio using Microsoft Edge TTS"""
+    """Generate audio using Microsoft Edge TTS with automatic retry and voice fallback"""
     clean_text = text.strip() or "..."
-    communicate = edge_tts.Communicate(clean_text, voice_code, rate=rate, pitch=pitch)
-    await communicate.save(output_path)
-    return True
+    out_dir = os.path.dirname(output_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
+    last_err = None
+    voices_to_try = [voice_code, "km-KH-PisethNeural", "km-KH-SreymomNeural"]
+    for v_code in voices_to_try:
+        try:
+            communicate = edge_tts.Communicate(clean_text, v_code, rate=rate, pitch=pitch)
+            await communicate.save(output_path)
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return True
+        except Exception as e:
+            last_err = e
+            await asyncio.sleep(0.3)
+            
+    if last_err:
+        raise last_err
+    return False
 
 VOXCPM_CLIENT = None
 LAST_ENDPOINT = ""
@@ -197,9 +213,10 @@ async def generate_segment_voice(
         elif chars_per_sec > 10.5:
             dense_rate_bonus = 10
 
+    global_mode = (settings.get("tts_provider") or "edge_tts").lower().strip()
     provider = vcfg.get("provider", "edge_tts")
     
-    # If the character itself has a custom ref_audio in voice_bank, use VoxCPM
+    # Check if the character itself has a custom ref_audio in voice_bank
     ref_audio_name = vcfg.get("ref_audio")
     ref_audio_full = None
     if ref_audio_name:
@@ -208,22 +225,33 @@ async def generate_segment_voice(
             ref_path = BASE_DIR / "data" / "voice_bank" / ref_audio_name
         if ref_path.exists():
             ref_audio_full = str(ref_path)
-            provider = "voxcpm"
-            
-    if provider == "voxcpm" and ref_audio_full:
+
+    # Determine whether to attempt VoxCPM Voice Cloning:
+    # 1. If global_mode is set to "edge_tts", always prioritize Edge-TTS (100% reliable & ultra-fast)
+    # 2. If global_mode is "voxcpm" and ref_audio exists, try VoxCPM with automatic fallback to Edge-TTS
+    use_voxcpm = (global_mode == "voxcpm" or provider == "voxcpm") and (ref_audio_full is not None) and (global_mode != "edge_tts")
+
+    generated = False
+    if use_voxcpm:
         endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
         token = settings.get("hf_token", "")
-        # Call VoxCPM with automatic queue retry
-        await generate_voxcpm_tts(
-            text=clean_text,
-            ref_audio_path=ref_audio_full,
-            output_path=str(output_file),
-            endpoint_url=endpoint,
-            hf_token=token,
-            max_retries=4
-        )
-    else:
-        # Edge TTS (Only for characters configured for Edge TTS, not cloned characters)
+        try:
+            await generate_voxcpm_tts(
+                text=clean_text,
+                ref_audio_path=ref_audio_full,
+                output_path=str(output_file),
+                endpoint_url=endpoint,
+                hf_token=token,
+                max_retries=2
+            )
+            if output_file.exists() and output_file.stat().st_size > 0:
+                generated = True
+        except Exception as e:
+            print(f"[VoxCPM Fallback] VoxCPM failed ({e}). Auto-falling back to Microsoft Edge-TTS.")
+            generated = False
+
+    if not generated:
+        # Microsoft Edge-TTS (Primary or Fallback)
         voice_code = vcfg.get("voice_code", "km-KH-PisethNeural")
         rate_str = vcfg.get("rate", "+0%")
         # For dense segments with default rate, give slight initial rate boost (+10% to +15%)

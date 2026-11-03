@@ -592,6 +592,8 @@ async function loadSettings() {
     }
     if (gSettings.tts_provider) {
       selectTtsMode(gSettings.tts_provider);
+    } else {
+      selectTtsMode("edge_tts");
     }
   } catch (e) {
     console.error("Error loading settings:", e);
@@ -1513,26 +1515,32 @@ async function generateSingleVoice(idx) {
 
 // 8. TTS Modes & Batch Generation
 function selectTtsMode(mode) {
-  gCurrentTtsMode = mode;
-  document.querySelectorAll(".mode-card").forEach(el => el.classList.remove("active"));
+  gCurrentTtsMode = mode || "edge_tts";
+  document.querySelectorAll(".voice-mode-selector .mode-card").forEach(el => el.classList.remove("active"));
   
   if (mode === "voxcpm") {
-    document.getElementById("modeVoxcpm").classList.add("active");
+    const el = document.getElementById("modeVoxcpm");
+    if (el) el.classList.add("active");
+    const r = el ? el.querySelector("input") : null;
+    if (r) r.checked = true;
   } else {
-    document.getElementById("modeEdgeTts").classList.add("active");
+    const el = document.getElementById("modeEdgeTts");
+    if (el) el.classList.add("active");
+    const r = el ? el.querySelector("input") : null;
+    if (r) r.checked = true;
   }
   
   // Update setting on server
   fetch("/api/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tts_provider: mode })
-  });
+    body: JSON.stringify({ tts_provider: gCurrentTtsMode })
+  }).catch(() => {});
 }
 
 async function startBatchTts(force = false) {
-  if (!gSubtitles.length) {
-    alert("មិនទាន់មាន Subtitle ទេ! សូមបញ្ចូល Subtitle ជាមុនសិន។");
+  if (!gSubtitles || !gSubtitles.length) {
+    alert("⚠️ មិនទាន់មាន Subtitle ទេ! សូមបញ្ចូលវីដេអូ ឬឯកសារ Subtitle (SRT) នៅផ្ទាំងទី ១ ជាមុនសិន។");
     return;
   }
   
@@ -1541,16 +1549,20 @@ async function startBatchTts(force = false) {
   const progressBar = document.getElementById("ttsProgressBar");
   const progressPct = document.getElementById("ttsProgressPct");
   
-  progressWrap.style.display = "block";
-  progressBar.style.width = "5%";
-  progressPct.innerText = "5%";
-  progressMsg.innerText = "កំពុងចាប់ផ្តើមបង្កើតសំឡេង...";
+  if (progressWrap) progressWrap.style.display = "block";
+  if (progressBar) progressBar.style.width = "5%";
+  if (progressPct) progressPct.innerText = "5%";
+  if (progressMsg) progressMsg.innerText = "កំពុងចាប់ផ្តើមបង្កើតសំឡេង...";
   
   try {
     const res = await fetch("/api/generate_voice_batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: gSessionId, force })
+      body: JSON.stringify({ 
+        session_id: gSessionId, 
+        force: force,
+        subtitles: gSubtitles 
+      })
     });
     
     if (!res.ok) {
@@ -1572,7 +1584,7 @@ async function startBatchTts(force = false) {
     const data = await res.json();
     if (!data.success) {
       alert("❌ " + (data.error || "បរាជ័យ"));
-      progressWrap.style.display = "none";
+      if (progressWrap) progressWrap.style.display = "none";
       return;
     }
     
@@ -1583,9 +1595,9 @@ async function startBatchTts(force = false) {
         if (!pRes.ok) return;
         const pData = await pRes.json();
         
-        progressBar.style.width = pData.percent + "%";
-        progressPct.innerText = pData.percent + "%";
-        progressMsg.innerText = pData.message;
+        if (progressBar) progressBar.style.width = pData.percent + "%";
+        if (progressPct) progressPct.innerText = pData.percent + "%";
+        if (progressMsg) progressMsg.innerText = pData.message;
         
         // Highlight active card
         if (pData.active_index >= 0) {
@@ -1599,9 +1611,9 @@ async function startBatchTts(force = false) {
         if (!pData.is_running) {
           clearInterval(pollInterval);
           await loadSessionState();
-          showToast("🎉 បង្កើតសំឡេងក្លូនរួចរាល់ទាំងអស់!", "success", 4500);
+          showToast(`🎉 ${pData.message || "បង្កើតសំឡេងរួចរាល់ទាំងអស់!"}`, "success", 4500);
           updateWorkflowStepper();
-          setTimeout(() => { progressWrap.style.display = "none"; }, 3500);
+          setTimeout(() => { if (progressWrap) progressWrap.style.display = "none"; }, 3500);
         }
       } catch (err) {
         clearInterval(pollInterval);
