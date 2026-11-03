@@ -798,7 +798,8 @@ def run_render_worker(
             "message": "Render វីដេអូជោគជ័យ ១០០%!",
             "video_ready": True,
             "video_url": f"/api/media/rendered_video?session_id={session_id}&t={int(time.time())}",
-            "audio_url": f"/api/media/master_dub?session_id={session_id}&t={int(time.time())}"
+            "audio_url": f"/api/media/master_dub?session_id={session_id}&t={int(time.time())}",
+            "video_name": state.get("video_name", "")
         })
     else:
         prog.update({
@@ -828,7 +829,14 @@ async def api_get_media(media_type: str, session_id: str = "default"):
     elif media_type == "master_dub":
         f = sdir / "master_dub.mp3"
         if f.exists():
-            return FileResponse(str(f), media_type="audio/mp3", filename="master_dub.mp3")
+            state = load_session_state(sdir)
+            orig_name = (state.get("video_name") or "").strip()
+            if orig_name:
+                stem = Path(orig_name).stem
+                dl_name = f"{stem}.mp3" if stem.lower().startswith("sva") else f"Sva {stem}.mp3"
+            else:
+                dl_name = "Sva Master Dub.mp3"
+            return FileResponse(str(f), media_type="audio/mp3", filename=dl_name)
     elif media_type == "bgm":
         f = sdir / "bgm.mp3"
         if f.exists():
@@ -844,7 +852,14 @@ async def api_get_media(media_type: str, session_id: str = "default"):
     elif media_type == "rendered_video":
         f = sdir / "rendered_dubbed_video.mp4"
         if f.exists():
-            return FileResponse(str(f), media_type="video/mp4", filename="rendered_dubbed_video.mp4")
+            state = load_session_state(sdir)
+            orig_name = (state.get("video_name") or "").strip()
+            if orig_name:
+                stem = Path(orig_name).stem
+                dl_name = f"{stem}.mp4" if stem.lower().startswith("sva") else f"Sva {stem}.mp4"
+            else:
+                dl_name = "Sva Rendered Video.mp4"
+            return FileResponse(str(f), media_type="video/mp4", filename=dl_name)
             
     raise HTTPException(status_code=404, detail="Media not found")
 

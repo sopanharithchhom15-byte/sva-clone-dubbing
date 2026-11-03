@@ -990,6 +990,26 @@ async function deleteVoice(vid) {
 }
 
 // 4. Session State & Video Upload
+function getSvaPrefixedDownloadName(origName, ext = "mp4") {
+  if (!origName) return `Sva Rendered Video.${ext}`;
+  let clean = origName.trim().split(/[\\/]/).pop();
+  let stem = clean.replace(/\.[^/.]+$/, "").trim();
+  if (!stem || stem.includes("ជ្រើសរើស") || stem.includes("មិនទាន់")) {
+    return `Sva Rendered Video.${ext}`;
+  }
+  if (/^sva[\s_-]/i.test(stem)) {
+    return `${stem}.${ext}`;
+  }
+  return `Sva ${stem}.${ext}`;
+}
+
+function updateRenderDownloadButtons(videoName) {
+  const btnV = document.getElementById("btnDownloadVideo");
+  const btnA = document.getElementById("btnDownloadAudio");
+  if (btnV) btnV.setAttribute("download", getSvaPrefixedDownloadName(videoName, "mp4"));
+  if (btnA) btnA.setAttribute("download", getSvaPrefixedDownloadName(videoName, "mp3"));
+}
+
 async function loadSessionState() {
   try {
     const res = await fetch(`/api/session_state?session_id=${gSessionId}`);
@@ -1017,8 +1037,14 @@ async function loadSessionState() {
         vPlayer.src = vUrl;
         const btnV = document.getElementById("btnDownloadVideo");
         const btnA = document.getElementById("btnDownloadAudio");
-        if (btnV) btnV.href = vUrl;
-        if (btnA) btnA.href = aUrl;
+        if (btnV) {
+          btnV.href = vUrl;
+          btnV.setAttribute("download", getSvaPrefixedDownloadName(state.video_name, "mp4"));
+        }
+        if (btnA) {
+          btnA.href = aUrl;
+          btnA.setAttribute("download", getSvaPrefixedDownloadName(state.video_name, "mp3"));
+        }
         const resWrap = document.getElementById("renderedResultWrap");
         if (resWrap) resWrap.style.display = "block";
       }
@@ -1131,6 +1157,7 @@ function handleVideoUpload(input) {
           
           if (fileNameEl) fileNameEl.innerText = data.filename;
           if (fileDurEl) fileDurEl.innerText = `ប្រវែង: ${Math.round(data.duration)} វិនាទី (${fileSizeMb} MB)`;
+          updateRenderDownloadButtons(data.filename);
           
           const vPlayer = document.getElementById("sourceVideoPlayer");
           if (vPlayer) vPlayer.src = data.media_url;
@@ -1737,8 +1764,17 @@ async function startRenderVideo() {
             const vPlayer = document.getElementById("renderedVideoPlayer");
             vPlayer.src = pData.video_url;
             
-            document.getElementById("btnDownloadVideo").href = pData.video_url;
-            document.getElementById("btnDownloadAudio").href = pData.audio_url;
+            const vName = pData.video_name || document.getElementById("videoFileName")?.innerText;
+            const btnV = document.getElementById("btnDownloadVideo");
+            const btnA = document.getElementById("btnDownloadAudio");
+            if (btnV) {
+              btnV.href = pData.video_url;
+              btnV.setAttribute("download", getSvaPrefixedDownloadName(vName, "mp4"));
+            }
+            if (btnA) {
+              btnA.href = pData.audio_url;
+              btnA.setAttribute("download", getSvaPrefixedDownloadName(vName, "mp3"));
+            }
             
             document.getElementById("renderedResultWrap").style.display = "block";
             
