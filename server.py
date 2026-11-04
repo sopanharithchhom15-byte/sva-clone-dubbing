@@ -296,7 +296,7 @@ async def api_voice_bank_preview(request: Request):
         override = {
             "id": char_id,
             "name": char_id,
-            "provider": body.get("provider", "edge_tts"),
+            "provider": body.get("provider", "voxcpm"),
             "ref_audio": body.get("ref_audio", ""),
             "voice_code": body.get("voice_code", "km-KH-PisethNeural"),
             "rate": body.get("rate", "+0%"),

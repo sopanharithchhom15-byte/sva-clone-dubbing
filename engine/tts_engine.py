@@ -183,13 +183,47 @@ def apply_audio_speedup(audio_path: str, speed_factor: float) -> bool:
         print(f"Error applying audio speedup to {audio_path}: {e}")
         return False
 
+def resolve_reference_audio(ref_audio_name: Optional[str]) -> Optional[str]:
+    """Finds reference audio by exact name or timestamp prefix across voice bank directories"""
+    if not ref_audio_name:
+        return get_default_sample_audio()
+        
+    candidates = [
+        VOICE_BANK_DIR / ref_audio_name,
+        BASE_DIR / "data" / "voice_bank" / ref_audio_name
+    ]
+    for c in candidates:
+        if c.exists() and c.is_file() and c.stat().st_size > 0:
+            return str(c)
+            
+    prefix = ref_audio_name.split("_")[0] if "_" in ref_audio_name else ""
+    for d in [VOICE_BANK_DIR, BASE_DIR / "data" / "voice_bank"]:
+        if d.exists():
+            for f in d.iterdir():
+                if f.is_file() and f.suffix.lower() in [".mp3", ".wav", ".m4a"] and not f.name.endswith(".json"):
+                    if prefix and f.name.startswith(prefix):
+                        return str(f)
+                    if f.name == ref_audio_name:
+                        return str(f)
+                        
+    return get_default_sample_audio()
+
+def get_default_sample_audio() -> Optional[str]:
+    """Returns the first available valid audio sample in voice bank as default clone reference"""
+    for d in [VOICE_BANK_DIR, BASE_DIR / "data" / "voice_bank"]:
+        if d.exists():
+            for f in sorted(d.iterdir()):
+                if f.is_file() and f.suffix.lower() in [".mp3", ".wav", ".m4a"] and not f.name.endswith(".json"):
+                    return str(f)
+    return None
+
 async def generate_segment_voice(
     segment: Dict[str, Any], 
     output_file: Path, 
     settings: Dict[str, Any],
     voice_config_override: Optional[Dict[str, Any]] = None
 ) -> bool:
-    """Generates voice for a single subtitle segment according to its assigned voice and settings"""
+    """Generates voice for a single subtitle segment using exclusively VoxCPM Voice Clone (100% VoxCPM)"""
     voice_id = segment.get("voice", "narrator_male")
     vcfg = voice_config_override or find_voice_config(voice_id)
     raw_text = segment.get("text", "").strip() or "..."
@@ -209,71 +243,31 @@ async def generate_segment_voice(
         end_sec = srt_time_to_seconds(segment["end"])
         
     slot_sec = (end_sec - start_sec) if (end_sec > start_sec) else 0.0
-    
-    # Calculate density: Khmer characters per second
-    # Standard speech ~8-11 char/sec. If > 12 chars/sec, text is dense for this slot
-    char_count = len(clean_text.replace(" ", ""))
-    dense_rate_bonus = 0
-    if slot_sec > 0.5 and char_count > 0:
-        chars_per_sec = char_count / slot_sec
-        if chars_per_sec > 13:
-            dense_rate_bonus = 15
-        elif chars_per_sec > 10.5:
-            dense_rate_bonus = 10
 
-    # Dedicated VoxCPM Voice Cloning Engine for all characters
+    # Resolve reference audio sample for cloning
     ref_audio_name = vcfg.get("ref_audio")
-    ref_audio_full = None
-    if ref_audio_name:
-        ref_path = VOICE_BANK_DIR / ref_audio_name
-        if not ref_path.exists() and (BASE_DIR / "data" / "voice_bank" / ref_audio_name).exists():
-            ref_path = BASE_DIR / "data" / "voice_bank" / ref_audio_name
-        if ref_path.exists():
-            ref_audio_full = str(ref_path)
-
-    # If character has no ref_audio, use default sample from voice bank
-    if not ref_audio_full:
-        for cand_name in ["1792134948_សម្លេងសាមកុក.mp3", "1792132873_Tinfy 01.MP3", "1792134006_Jing Jang Voice.MP3"]:
-            c1 = VOICE_BANK_DIR / cand_name
-            if c1.exists():
-                ref_audio_full = str(c1)
-                break
-            c2 = BASE_DIR / "data" / "voice_bank" / cand_name
-            if c2.exists():
-                ref_audio_full = str(c2)
-                break
+    ref_audio_full = resolve_reference_audio(ref_audio_name)
 
     endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
-    token = settings.get("hf_token", "")
+    token = settings.get("hf_token", "") or os.environ.get("HF_TOKEN", "")
     
-    generated = False
-    try:
-        # Generate with VoxCPM Voice Clone (OpenBMB)
-        await asyncio.wait_for(
-            generate_voxcpm_tts(
-                text=clean_text,
-                ref_audio_path=ref_audio_full,
-                output_path=str(output_file),
-                endpoint_url=endpoint,
-                hf_token=token,
-                max_retries=1
-            ),
-            timeout=15.0
-        )
-        if output_file.exists() and output_file.stat().st_size > 0:
-            generated = True
-    except Exception as e:
-        print(f"[VoxCPM] Generation error ({e}), applying safety fallback...")
-        generated = False
+    print(f"[VoxCPM Exclusive] Generating segment: '{clean_text[:35]}...' using ref: {ref_audio_full}")
 
-    if not generated:
-        # Safety fallback ensures voice file is always present and never crashes rendering
-        voice_code = vcfg.get("voice_code", "km-KH-PisethNeural")
-        rate_str = vcfg.get("rate", "+0%")
-        if dense_rate_bonus > 0 and (rate_str == "+0%" or not rate_str):
-            rate_str = f"+{dense_rate_bonus}%"
-        pitch = vcfg.get("pitch", "+0Hz")
-        await generate_edge_tts(clean_text, voice_code, rate_str, pitch, str(output_file))
+    # Exclusively generate using VoxCPM Voice Clone with sufficient timeout
+    await asyncio.wait_for(
+        generate_voxcpm_tts(
+            text=clean_text,
+            ref_audio_path=ref_audio_full,
+            output_path=str(output_file),
+            endpoint_url=endpoint,
+            hf_token=token,
+            max_retries=2
+        ),
+        timeout=120.0
+    )
+
+    if not output_file.exists() or output_file.stat().st_size == 0:
+        raise RuntimeError(f"VoxCPM Voice Clone failed to produce audio for: {clean_text[:35]}")
 
     # Dynamic post-generation duration adjustment:
     # If the generated speech exceeds the subtitle time slot, speed it up smoothly
