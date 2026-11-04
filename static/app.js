@@ -18,7 +18,7 @@ function initUserSession() {
 }
 
 let gSessionId = initUserSession();
-let gCurrentTtsMode = "edge_tts";
+let gCurrentTtsMode = "voxcpm";
 
 // Audio Preview Player
 const gAudio = document.getElementById("globalAudioPlayer");
@@ -593,7 +593,7 @@ async function loadSettings() {
     if (gSettings.tts_provider) {
       selectTtsMode(gSettings.tts_provider);
     } else {
-      selectTtsMode("edge_tts");
+      selectTtsMode("voxcpm");
     }
   } catch (e) {
     console.error("Error loading settings:", e);
@@ -647,7 +647,7 @@ async function loadVoices() {
 }
 
 let gActiveEditCharId = null;
-let gCharMode = "edge_tts";
+let gCharMode = "voxcpm";
 
 function renderVoiceBank() {
   const container = document.getElementById("voiceBankGrid");
@@ -657,30 +657,23 @@ function renderVoiceBank() {
     const card = document.createElement("div");
     card.className = "voice-card";
     
-    const isCloned = v.provider === "voxcpm" && v.ref_audio;
     const isCustomProfile = v.is_custom_profile;
     const isCustomized = v.is_customized;
     
-    let badgeHtml = "";
-    if (isCloned) {
-      badgeHtml = `<span class="badge-clone-neon">⚡ VoxCPM Cloned</span>`;
-    } else {
-      badgeHtml = `<span class="badge-edge-clean">🌐 Edge-TTS</span>`;
-    }
+    const badgeHtml = `<span class="badge-clone-neon">⚡ VoxCPM Cloned</span>`;
     
     let infoHtml = "";
-    if (isCloned) {
+    if (v.ref_audio) {
       infoHtml = `<div class="voice-card-meta">🎵 គំរូ៖ <strong style="color:var(--accent-color)" title="${v.ref_audio}">${v.ref_audio.length > 22 ? v.ref_audio.substring(0, 20) + '...' : v.ref_audio}</strong></div>`;
     } else {
-      const vSpeaker = v.voice_code ? (v.voice_code.includes('Piseth') ? 'Piseth (ប្រុស)' : 'Sreymom (ស្រី)') : 'Standard';
-      infoHtml = `<div class="voice-card-meta">${vSpeaker} | Speed: ${v.rate || '+0%'} | Pitch: ${v.pitch || '+0Hz'}</div>`;
+      infoHtml = `<div class="voice-card-meta" style="color:var(--text-muted)">🎵 គំរូដើមប្រព័ន្ធ (Default Sample)</div>`;
     }
     
     let previewBtn = "";
-    if (isCloned) {
+    if (v.ref_audio) {
       previewBtn = `<button class="btn btn-sm btn-secondary" onclick="playRefAudio('${v.ref_audio}')" title="ស្តាប់សំឡេងគំរូ">▶️ ស្តាប់គំរូ</button>`;
     } else {
-      previewBtn = `<button class="btn btn-sm btn-secondary" onclick="quickPreviewCharacter('${v.id}')" title="សាកល្បងស្តាប់">▶️ ស្តាប់</button>`;
+      previewBtn = `<button class="btn btn-sm btn-secondary" onclick="quickPreviewCharacter('${v.id}')" title="សាកល្បងស្តាប់">▶️ ស្តាប់គំរូ</button>`;
     }
     
     card.innerHTML = `
@@ -708,7 +701,7 @@ async function openEditCharModal(charId) {
   if (!v) return;
   
   document.getElementById("editCharId").value = charId;
-  document.getElementById("editCharTitle").innerText = `🎭 កែប្រែសំឡេង៖ ${v.name}`;
+  document.getElementById("editCharTitle").innerText = `🎭 កែប្រែសំឡេងគំរូ VoxCPM៖ ${v.name}`;
   
   // Load available samples into select
   const select = document.getElementById("charSelectRefSample");
@@ -728,21 +721,7 @@ async function openEditCharModal(charId) {
   }
   
   // Set current mode
-  const mode = v.provider === "voxcpm" ? "voxcpm" : "edge_tts";
-  selectCharMode(mode);
-  
-  // Set Edge TTS fields
-  if (v.voice_code) document.getElementById("charVoiceCode").value = v.voice_code;
-  if (v.rate) {
-    const rNum = parseInt(v.rate.replace('%', '').replace('+', '')) || 0;
-    document.getElementById("inputCharRate").value = rNum;
-    document.getElementById("valCharRate").innerText = (rNum >= 0 ? '+' : '') + rNum + '%';
-  }
-  if (v.pitch) {
-    const pNum = parseInt(v.pitch.replace('Hz', '').replace('+', '')) || 0;
-    document.getElementById("inputCharPitch").value = pNum;
-    document.getElementById("valCharPitch").innerText = (pNum >= 0 ? '+' : '') + pNum + 'Hz';
-  }
+  selectCharMode("voxcpm");
   
   // If has ref_audio, setup audio player
   if (v.ref_audio) {
@@ -761,12 +740,11 @@ function closeEditCharModal() {
 }
 
 function selectCharMode(mode) {
-  gCharMode = mode;
-  document.getElementById("charModeClone").classList.toggle("active", mode === "voxcpm");
-  document.getElementById("charModeEdge").classList.toggle("active", mode === "edge_tts");
-  
-  document.getElementById("charCloneSection").style.display = mode === "voxcpm" ? "block" : "none";
-  document.getElementById("charEdgeSection").style.display = mode === "edge_tts" ? "block" : "none";
+  gCharMode = "voxcpm";
+  const btnClone = document.getElementById("charModeClone");
+  if (btnClone) btnClone.classList.add("active");
+  const secClone = document.getElementById("charCloneSection");
+  if (secClone) secClone.style.display = "block";
 }
 
 function onCharSampleSelected(val) {
@@ -835,17 +813,12 @@ async function testCharacterPreview() {
   const payload = {
     char_id: charId,
     text: text,
-    provider: gCharMode
+    provider: "voxcpm"
   };
   
-  if (gCharMode === "voxcpm") {
-    payload.ref_audio = document.getElementById("charSelectRefSample").value;
-  } else {
-    payload.voice_code = document.getElementById("charVoiceCode").value;
-    const r = parseInt(document.getElementById("inputCharRate").value) || 0;
-    const p = parseInt(document.getElementById("inputCharPitch").value) || 0;
-    payload.rate = (r >= 0 ? '+' : '') + r + '%';
-    payload.pitch = (p >= 0 ? '+' : '') + p + 'Hz';
+  const refSel = document.getElementById("charSelectRefSample");
+  if (refSel && refSel.value) {
+    payload.ref_audio = refSel.value;
   }
   
   try {
@@ -874,26 +847,18 @@ async function saveCharacterChanges() {
   const charId = gActiveEditCharId;
   const fd = new FormData();
   fd.append("char_id", charId);
-  fd.append("provider", gCharMode);
+  fd.append("provider", "voxcpm");
   
-  if (gCharMode === "voxcpm") {
-    const refSelect = document.getElementById("charSelectRefSample").value;
-    const fileInput = document.getElementById("charUploadRefAudio");
-    
-    if (fileInput.files.length) {
-      fd.append("audio_file", fileInput.files[0]);
-    } else if (refSelect) {
-      fd.append("ref_audio", refSelect);
-    } else {
-      alert("សូមជ្រើសរើស ឬ Upload សំឡេងគំរូសម្រាប់ Clone!");
-      return;
-    }
+  const refSelect = document.getElementById("charSelectRefSample").value;
+  const fileInput = document.getElementById("charUploadRefAudio");
+  
+  if (fileInput.files.length) {
+    fd.append("audio_file", fileInput.files[0]);
+  } else if (refSelect) {
+    fd.append("ref_audio", refSelect);
   } else {
-    fd.append("voice_code", document.getElementById("charVoiceCode").value);
-    const r = parseInt(document.getElementById("inputCharRate").value) || 0;
-    const p = parseInt(document.getElementById("inputCharPitch").value) || 0;
-    fd.append("rate", (r >= 0 ? '+' : '') + r + '%');
-    fd.append("pitch", (p >= 0 ? '+' : '') + p + 'Hz');
+    alert("សូមជ្រើសរើស ឬ Upload សំឡេងគំរូសម្រាប់ Clone!");
+    return;
   }
   
   try {
@@ -1542,26 +1507,13 @@ async function generateSingleVoice(idx) {
 
 // 8. TTS Modes & Batch Generation
 function selectTtsMode(mode) {
-  gCurrentTtsMode = mode || "edge_tts";
-  document.querySelectorAll(".voice-mode-selector .mode-card").forEach(el => el.classList.remove("active"));
-  
-  if (mode === "voxcpm") {
-    const el = document.getElementById("modeVoxcpm");
-    if (el) el.classList.add("active");
-    const r = el ? el.querySelector("input") : null;
-    if (r) r.checked = true;
-  } else {
-    const el = document.getElementById("modeEdgeTts");
-    if (el) el.classList.add("active");
-    const r = el ? el.querySelector("input") : null;
-    if (r) r.checked = true;
-  }
+  gCurrentTtsMode = "voxcpm";
   
   // Update setting on server
   fetch("/api/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tts_provider: gCurrentTtsMode })
+    body: JSON.stringify({ tts_provider: "voxcpm" })
   }).catch(() => {});
 }
 

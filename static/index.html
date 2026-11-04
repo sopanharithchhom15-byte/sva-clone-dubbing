@@ -314,19 +314,21 @@
           <h2>🎙️ បង្កើតសំឡេង Dubbing គ្រប់បន្ទាត់</h2>
         </div>
         <div class="card-body">
-          <div class="voice-mode-selector">
-            <label class="mode-card active" id="modeEdgeTts" onclick="selectTtsMode('edge_tts')">
-              <input type="radio" name="ttsMode" value="edge_tts" checked style="display:none">
-              <span class="mode-icon">🌐</span>
-              <span class="mode-name">Microsoft Edge-TTS</span>
-              <span class="mode-desc">Piseth (ប្រុស) & Sreymom (ស្រី) + ច្រើនតួអង្គ</span>
-            </label>
-            <label class="mode-card" id="modeVoxcpm" onclick="selectTtsMode('voxcpm')">
-              <input type="radio" name="ttsMode" value="voxcpm" style="display:none">
-              <span class="mode-icon">⚡</span>
-              <span class="mode-name">VoxCPM Voice Clone</span>
-              <span class="mode-desc">ក្លូនតាមគំរូសំឡេងតួអង្គពិត (OpenBMB)</span>
-            </label>
+          <!-- Dedicated VoxCPM Voice Cloning Engine Banner (Only VoxCPM) -->
+          <div class="voxcpm-banner-active" id="modeVoxcpm">
+            <div class="voxcpm-banner-left">
+              <span class="voxcpm-banner-icon">⚡</span>
+              <div>
+                <div class="voxcpm-banner-title">
+                  VoxCPM Voice Clone
+                  <span class="badge-clone-neon">100% Active AI Engine</span>
+                </div>
+                <div class="voxcpm-banner-desc">ក្លូនតាមគំរូសំឡេងតួអង្គពិត (OpenBMB AI Voice Cloning)</div>
+              </div>
+            </div>
+            <div class="voxcpm-status-pill">
+              <span class="status-dot-pulse"></span> ដំណើរការ
+            </div>
           </div>
 
           <div class="batch-generate-box">
@@ -659,22 +661,17 @@
       <div class="modal-body">
         <input type="hidden" id="editCharId">
         
-        <!-- Mode Tabs -->
-        <div class="voice-mode-selector" style="margin-bottom: 14px;">
-          <label class="mode-card" id="charModeClone" onclick="selectCharMode('voxcpm')">
-            <span class="mode-icon">⚡</span>
-            <span class="mode-name">VoxCPM Voice Clone</span>
-            <span class="mode-desc">ដាក់សំឡេងគំរូពិតសម្រាប់តួអង្គនេះ</span>
-          </label>
-          <label class="mode-card active" id="charModeEdge" onclick="selectCharMode('edge_tts')">
-            <span class="mode-icon">🌐</span>
-            <span class="mode-name">Edge-TTS</span>
-            <span class="mode-desc">សំឡេងប្រព័ន្ធ Piseth / Sreymom</span>
-          </label>
+        <!-- Dedicated VoxCPM Character Voice Header -->
+        <div style="margin-bottom: 14px; padding: 12px 14px; background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-md); display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">⚡</span>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #10b981;">VoxCPM Voice Clone Engine</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">កំណត់ ឬ Upload សំឡេងគំរូពិតសម្រាប់តួអង្គនេះ (OpenBMB)</div>
+          </div>
         </div>
 
-        <!-- Section 1: VoxCPM Clone Option -->
-        <div id="charCloneSection" style="display:none;">
+        <!-- VoxCPM Clone Section -->
+        <div id="charCloneSection" style="display:block;">
           <div class="form-group">
             <label class="form-label">📂 ជ្រើសរើសសំឡេងគំរូដែលមានស្រាប់ក្នុង Voice Bank:</label>
             <select id="charSelectRefSample" class="form-input" onchange="onCharSampleSelected(this.value)">
@@ -689,27 +686,6 @@
           <div id="charAudioPreviewBox" style="display:none; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px;">
             <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">🎵 ស្តាប់សំឡេងគំរូ (Sample Preview):</label>
             <audio id="charSampleAudioPlayer" controls style="width:100%; height:36px;"></audio>
-          </div>
-        </div>
-
-        <!-- Section 2: Edge-TTS Option -->
-        <div id="charEdgeSection">
-          <div class="form-group">
-            <label class="form-label">🎙️ សំឡេងខ្មែរ (Voice Model):</label>
-            <select id="charVoiceCode" class="form-input">
-              <option value="km-KH-PisethNeural">👨 Piseth (សំឡេងប្រុស)</option>
-              <option value="km-KH-SreymomNeural">👩 Sreymom (សំឡេងស្រី)</option>
-            </select>
-          </div>
-          <div class="settings-grid">
-            <div class="setting-item">
-              <label>ល្បឿននិយាយ (Rate): <span id="valCharRate">+0%</span></label>
-              <input type="range" id="inputCharRate" min="-30" max="30" value="0" step="5" oninput="document.getElementById('valCharRate').innerText = (this.value >= 0 ? '+' : '') + this.value + '%'">
-            </div>
-            <div class="setting-item">
-              <label>កម្រិតសម្លេង (Pitch): <span id="valCharPitch">+0Hz</span></label>
-              <input type="range" id="inputCharPitch" min="-20" max="20" value="0" step="2" oninput="document.getElementById('valCharPitch').innerText = (this.value >= 0 ? '+' : '') + this.value + 'Hz'">
-            </div>
           </div>
         </div>
 

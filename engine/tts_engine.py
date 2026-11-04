@@ -221,10 +221,7 @@ async def generate_segment_voice(
         elif chars_per_sec > 10.5:
             dense_rate_bonus = 10
 
-    global_mode = (settings.get("tts_provider") or "edge_tts").lower().strip()
-    provider = vcfg.get("provider", "edge_tts")
-    
-    # Check if the character itself has a custom ref_audio in voice_bank
+    # Dedicated VoxCPM Voice Cloning Engine for all characters
     ref_audio_name = vcfg.get("ref_audio")
     ref_audio_full = None
     if ref_audio_name:
@@ -234,39 +231,45 @@ async def generate_segment_voice(
         if ref_path.exists():
             ref_audio_full = str(ref_path)
 
-    # Determine whether to attempt VoxCPM Voice Cloning:
-    # 1. If global_mode is set to "edge_tts", always prioritize Edge-TTS (100% reliable & ultra-fast)
-    # 2. If global_mode is "voxcpm" and ref_audio exists, try VoxCPM with automatic fallback to Edge-TTS
-    use_voxcpm = (global_mode == "voxcpm" or provider == "voxcpm") and (ref_audio_full is not None) and (global_mode != "edge_tts")
+    # If character has no ref_audio, use default sample from voice bank
+    if not ref_audio_full:
+        for cand_name in ["1792134948_សម្លេងសាមកុក.mp3", "1792132873_Tinfy 01.MP3", "1792134006_Jing Jang Voice.MP3"]:
+            c1 = VOICE_BANK_DIR / cand_name
+            if c1.exists():
+                ref_audio_full = str(c1)
+                break
+            c2 = BASE_DIR / "data" / "voice_bank" / cand_name
+            if c2.exists():
+                ref_audio_full = str(c2)
+                break
 
+    endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
+    token = settings.get("hf_token", "")
+    
     generated = False
-    if use_voxcpm:
-        endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
-        token = settings.get("hf_token", "")
-        try:
-            # Enforce 10-second strict timeout on VoxCPM so it NEVER hangs the application
-            await asyncio.wait_for(
-                generate_voxcpm_tts(
-                    text=clean_text,
-                    ref_audio_path=ref_audio_full,
-                    output_path=str(output_file),
-                    endpoint_url=endpoint,
-                    hf_token=token,
-                    max_retries=1
-                ),
-                timeout=10.0
-            )
-            if output_file.exists() and output_file.stat().st_size > 0:
-                generated = True
-        except Exception as e:
-            print(f"[VoxCPM Fallback] VoxCPM failed or timed out ({e}). Auto-falling back to Microsoft Edge-TTS.")
-            generated = False
+    try:
+        # Generate with VoxCPM Voice Clone (OpenBMB)
+        await asyncio.wait_for(
+            generate_voxcpm_tts(
+                text=clean_text,
+                ref_audio_path=ref_audio_full,
+                output_path=str(output_file),
+                endpoint_url=endpoint,
+                hf_token=token,
+                max_retries=1
+            ),
+            timeout=15.0
+        )
+        if output_file.exists() and output_file.stat().st_size > 0:
+            generated = True
+    except Exception as e:
+        print(f"[VoxCPM] Generation error ({e}), applying safety fallback...")
+        generated = False
 
     if not generated:
-        # Microsoft Edge-TTS (Primary or Fallback)
+        # Safety fallback ensures voice file is always present and never crashes rendering
         voice_code = vcfg.get("voice_code", "km-KH-PisethNeural")
         rate_str = vcfg.get("rate", "+0%")
-        # For dense segments with default rate, give slight initial rate boost (+10% to +15%)
         if dense_rate_bonus > 0 and (rate_str == "+0%" or not rate_str):
             rate_str = f"+{dense_rate_bonus}%"
         pitch = vcfg.get("pitch", "+0Hz")

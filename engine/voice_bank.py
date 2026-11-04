@@ -10,121 +10,121 @@ DEFAULT_EDGE_CHARACTERS = [
         "id": "narrator_male",
         "name": "🎙️ អ្នកសម្រាយរឿង (ប្រុស)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-PisethNeural",
         "rate": "+0%",
         "pitch": "+0Hz",
-        "ref_audio": ""
+        "ref_audio": "1792134948_សម្លេងសាមកុក.mp3"
     },
     {
         "id": "narrator_female",
         "name": "🎙️ អ្នកសម្រាយរឿង (ស្រី)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "+0%",
         "pitch": "+0Hz",
-        "ref_audio": ""
+        "ref_audio": "1792134987_សម្លេងស្រីស្រទន់.MP3"
     },
     {
         "id": "hero_male",
         "name": "👨 តួប្រុស (Hero Adult)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-PisethNeural",
         "rate": "+3%",
         "pitch": "+2Hz",
-        "ref_audio": ""
+        "ref_audio": "1792136487_សម្លែងស្រែកៗ.MP3"
     },
     {
         "id": "heroine_female",
         "name": "👩 តួស្រី (Heroine Adult)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "+3%",
         "pitch": "+4Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135010_សម្លេងស្រីស្រទន់.MP3"
     },
     {
         "id": "old_man",
         "name": "👴 តាចាស់ (Elderly Man)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-PisethNeural",
         "rate": "-15%",
         "pitch": "-10Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135029_សម្លេងតួរខ្មែរនាយប៉េ.MP3"
     },
     {
         "id": "old_woman",
         "name": "👵 យាយចាស់ (Elderly Woman)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "-15%",
         "pitch": "-8Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135038_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "boy",
         "name": "👦 ក្មេងប្រុស (Little Boy)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "+15%",
         "pitch": "+15Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135046_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "girl",
         "name": "👧 ក្មេងស្រី (Little Girl)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "+20%",
         "pitch": "+20Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135054_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "thought_male",
         "name": "💭 គិតក្នុងចិត្ត (ប្រុស)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-PisethNeural",
         "rate": "-5%",
         "pitch": "-5Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135065_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "thought_female",
         "name": "💭 គិតក្នុងចិត្ត (ស្រី)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "-5%",
         "pitch": "-3Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135074_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "drama_chinese_male",
         "name": "🏮 តួប្រុស (រឿងចិន)",
         "gender": "male",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-PisethNeural",
         "rate": "+2%",
         "pitch": "+2Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135084_eBookCambodia Admin កន្និកា.MP3"
     },
     {
         "id": "drama_chinese_female",
         "name": "🏮 តួស្រី (រឿងចិន)",
         "gender": "female",
-        "provider": "edge_tts",
+        "provider": "voxcpm",
         "voice_code": "km-KH-SreymomNeural",
         "rate": "+3%",
         "pitch": "+4Hz",
-        "ref_audio": ""
+        "ref_audio": "1792135092_eBookCambodia Admin កន្និកា.MP3"
     }
 ]
 

@@ -615,6 +615,78 @@ button, select, input, textarea, a {
   color: var(--text-muted);
 }
 
+/* Dedicated VoxCPM Active Engine Banner */
+.voxcpm-banner-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(0, 255, 111, 0.05));
+  border: 1.5px solid #10b981;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.12);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.voxcpm-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.voxcpm-banner-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.voxcpm-banner-title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.voxcpm-banner-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.voxcpm-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.status-dot-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseDotAnim 1.8s infinite;
+}
+
+@keyframes pulseDotAnim {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px #00ff6f; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
 /* Voice Bank Grid */
 .voice-bank-grid {
   display: grid;
