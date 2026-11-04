@@ -1616,8 +1616,10 @@ async function startBatchTts(force = false) {
     }
     
     // Poll progress
+    let pollAttempts = 0;
     const pollInterval = setInterval(async () => {
       try {
+        pollAttempts++;
         const pRes = await fetch(`/api/tts_progress?session_id=${encodeURIComponent(gSessionId)}`);
         if (!pRes.ok) return;
         const pData = await pRes.json();
@@ -1635,7 +1637,8 @@ async function startBatchTts(force = false) {
           }
         }
         
-        if (!pData.is_running) {
+        // Stop polling only when finished and after initial handshake
+        if (!pData.is_running && (pollAttempts >= 2 || pData.percent >= 90)) {
           clearInterval(pollInterval);
           await loadSessionState();
           showToast(`🎉 ${pData.message || "បង្កើតសំឡេងរួចរាល់ទាំងអស់!"}`, "success", 4500);

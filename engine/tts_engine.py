@@ -42,7 +42,15 @@ async def generate_edge_tts(text: str, voice_code: str, rate: str, pitch: str, o
                 return True
         except Exception as e:
             last_err = e
-            await asyncio.sleep(0.3)
+            # Try without custom pitch/rate if it failed
+            try:
+                communicate = edge_tts.Communicate(clean_text, v_code)
+                await communicate.save(output_path)
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    return True
+            except Exception:
+                pass
+            await asyncio.sleep(0.2)
             
     if last_err:
         raise last_err
@@ -236,18 +244,22 @@ async def generate_segment_voice(
         endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
         token = settings.get("hf_token", "")
         try:
-            await generate_voxcpm_tts(
-                text=clean_text,
-                ref_audio_path=ref_audio_full,
-                output_path=str(output_file),
-                endpoint_url=endpoint,
-                hf_token=token,
-                max_retries=2
+            # Enforce 10-second strict timeout on VoxCPM so it NEVER hangs the application
+            await asyncio.wait_for(
+                generate_voxcpm_tts(
+                    text=clean_text,
+                    ref_audio_path=ref_audio_full,
+                    output_path=str(output_file),
+                    endpoint_url=endpoint,
+                    hf_token=token,
+                    max_retries=1
+                ),
+                timeout=10.0
             )
             if output_file.exists() and output_file.stat().st_size > 0:
                 generated = True
         except Exception as e:
-            print(f"[VoxCPM Fallback] VoxCPM failed ({e}). Auto-falling back to Microsoft Edge-TTS.")
+            print(f"[VoxCPM Fallback] VoxCPM failed or timed out ({e}). Auto-falling back to Microsoft Edge-TTS.")
             generated = False
 
     if not generated:

@@ -597,13 +597,16 @@ async def api_generate_voice_single(request: Request):
     state = load_session_state(sdir)
     subs = state.get("subtitles", [])
     if not (0 <= idx < len(subs)):
-        raise HTTPException(status_code=400, detail="Invalid index")
-        
-    seg = subs[idx]
-    if body.get("text"):
-        seg["text"] = body["text"]
-    if body.get("voice"):
-        seg["voice"] = body["voice"]
+        if body.get("text"):
+            seg = {"text": body.get("text"), "voice": body.get("voice", "narrator_male")}
+        else:
+            raise HTTPException(status_code=400, detail="Invalid index")
+    else:
+        seg = subs[idx]
+        if body.get("text"):
+            seg["text"] = body["text"]
+        if body.get("voice"):
+            seg["voice"] = body["voice"]
         
     out_file = sdir / "voices" / f"voice_{idx}.mp3"
     settings = load_settings()
@@ -640,6 +643,15 @@ async def api_generate_voice_batch(request: Request, bg_tasks: BackgroundTasks):
     if not pending:
         pending = list(range(len(subs)))
         
+    prog = get_tts_state(session_id)
+    prog.update({
+        "is_running": True,
+        "percent": 5,
+        "current": 0,
+        "total": len(pending),
+        "message": f"កំពុងចាប់ផ្តើមបង្កើតសំឡេង (០/{len(pending)})..."
+    })
+
     bg_tasks.add_task(run_batch_tts_worker, sdir, subs, pending, session_id)
     return JSONResponse({"success": True, "total": len(pending)})
 
@@ -659,46 +671,59 @@ async def run_batch_tts_worker(sdir: Path, subs: List[Dict[str, Any]], indices: 
     vdir.mkdir(parents=True, exist_ok=True)
     
     successful_count = 0
-    for i, idx in enumerate(indices):
-        seg = subs[idx]
-        prog["active_index"] = idx
-        prog["current"] = i + 1
-        prog["percent"] = int(((i + 1) / total) * 95)
-        prog["message"] = f"កំពុងអានបន្ទាត់ #{idx + 1}/{len(subs)} ({i+1}/{total}): {seg.get('text', '')[:25]}..."
-        
-        out_file = vdir / f"voice_{idx}.mp3"
-        try:
-            await generate_segment_voice(seg, out_file, settings)
-            if out_file.exists() and out_file.stat().st_size > 0:
-                seg["has_audio"] = True
-                successful_count += 1
-            else:
-                seg["has_audio"] = False
-        except Exception as e:
-            print(f"Error TTS line {idx}: {e}")
-            seg["has_audio"] = False
+    try:
+        for i, idx in enumerate(indices):
+            seg = subs[idx]
+            prog["active_index"] = idx
+            prog["current"] = i + 1
+            prog["percent"] = int(5 + (((i + 1) / total) * 90))
+            prog["message"] = f"កំពុងអានបន្ទាត់ #{idx + 1}/{len(subs)} ({i+1}/{total}): {seg.get('text', '')[:25]}..."
             
-        # Periodically save state so generated voice progress is preserved live
-        if (i + 1) % 2 == 0 or (i + 1) == total:
+            out_file = vdir / f"voice_{idx}.mp3"
+            try:
+                await generate_segment_voice(seg, out_file, settings)
+                if out_file.exists() and out_file.stat().st_size > 0:
+                    seg["has_audio"] = True
+                    successful_count += 1
+                else:
+                    seg["has_audio"] = False
+            except Exception as e:
+                print(f"Error TTS line {idx}: {e}")
+                seg["has_audio"] = False
+                
+            # Periodically save state so generated voice progress is preserved live
+            if (i + 1) % 2 == 0 or (i + 1) == total:
+                state = load_session_state(sdir)
+                state["subtitles"] = subs
+                save_session_state(sdir, state)
+
+            await asyncio.sleep(0.1)
+                
+        # Auto build master dub track
+        try:
             state = load_session_state(sdir)
             state["subtitles"] = subs
+            master_dub = sdir / "master_dub.mp3"
+            build_master_dub_track(subs, vdir, master_dub, state.get("duration", 0.0))
+            state["has_master_dub"] = True
             save_session_state(sdir, state)
-
-        await asyncio.sleep(0.3)
-            
-    # Auto build master dub track
-    state = load_session_state(sdir)
-    state["subtitles"] = subs
-    master_dub = sdir / "master_dub.mp3"
-    build_master_dub_track(subs, vdir, master_dub, state.get("duration", 0.0))
-    state["has_master_dub"] = True
-    save_session_state(sdir, state)
-    
-    prog.update({
-        "is_running": False,
-        "percent": 100,
-        "message": f"បង្កើតសំឡេងជោគជ័យ {successful_count}/{total} បន្ទាត់!"
-    })
+        except Exception as e:
+            print(f"Error building master dub track: {e}")
+        
+        prog.update({
+            "is_running": False,
+            "percent": 100,
+            "message": f"បង្កើតសំឡេងជោគជ័យ {successful_count}/{total} បន្ទាត់!"
+        })
+    except Exception as e:
+        print(f"Batch TTS fatal error: {e}")
+        prog.update({
+            "is_running": False,
+            "percent": 100,
+            "message": f"បញ្ចប់ការបង្កើតសំឡេង ({successful_count}/{total} បន្ទាត់)"
+        })
+    finally:
+        prog["is_running"] = False
 
 @app.get("/api/tts_progress")
 async def api_tts_progress(session_id: str = "default"):
