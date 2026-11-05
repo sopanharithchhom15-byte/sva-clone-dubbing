@@ -314,20 +314,34 @@
           <h2>🎙️ បង្កើតសំឡេង Dubbing គ្រប់បន្ទាត់</h2>
         </div>
         <div class="card-body">
-          <!-- Dedicated VoxCPM Voice Cloning Engine Banner (Only VoxCPM) -->
-          <div class="voxcpm-banner-active" id="modeVoxcpm">
-            <div class="voxcpm-banner-left">
-              <span class="voxcpm-banner-icon">⚡</span>
-              <div>
-                <div class="voxcpm-banner-title">
-                  VoxCPM Voice Clone
-                  <span class="badge-clone-neon">100% Active AI Engine</span>
+          <!-- TTS Provider Mode Selector -->
+          <div class="voice-mode-selector" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-bottom:16px;">
+            <!-- Card 1: Studio Khmer Dubbing (Default & Recommended) -->
+            <div class="mode-card active" id="modeEdgeTts" onclick="selectTtsMode('edge_tts')" style="cursor:pointer; padding:14px 16px; border-radius:var(--radius-md); border:2px solid var(--accent-color); background:rgba(56, 189, 248, 0.08); transition:all 0.25s ease;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:700; font-size:0.98rem; display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.3rem;">🎙️</span>
+                  <span>Studio Khmer Dubbing</span>
                 </div>
-                <div class="voxcpm-banner-desc">ក្លូនតាមគំរូសំឡេងតួអង្គពិត (OpenBMB AI Voice Cloning)</div>
+                <span class="badge" style="background:#10b981; color:#fff; font-size:0.72rem; padding:2px 8px; border-radius:12px; font-weight:700;">⭐ ណែនាំខ្ពស់បំផុត</span>
               </div>
+              <p style="font-size:0.82rem; color:var(--text-muted); margin:0; line-height:1.4;">
+                សំឡេងខ្មែរច្បាស់ ១០០% ក្បោះក្បាយ មិនដាច់ពាក្យ ជាមួយតួអង្គ ១២ បែប (ល្បឿនលឿន ១-២ វិនាទី)
+              </p>
             </div>
-            <div class="voxcpm-status-pill">
-              <span class="status-dot-pulse"></span> ដំណើរការ
+
+            <!-- Card 2: VoxCPM Voice Clone -->
+            <div class="mode-card" id="modeVoxcpm" onclick="selectTtsMode('voxcpm')" style="cursor:pointer; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:rgba(255, 255, 255, 0.03); transition:all 0.25s ease;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:700; font-size:0.98rem; display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.3rem;">⚡</span>
+                  <span>VoxCPM Voice Clone</span>
+                </div>
+                <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--text-muted); font-size:0.72rem; padding:2px 8px; border-radius:12px;">Beta / En, Zh</span>
+              </div>
+              <p style="font-size:0.82rem; color:var(--text-muted); margin:0; line-height:1.4;">
+                ក្លូនតាមគំរូសំឡេង (OpenBMB AI - ស័ក្តិសមសម្រាប់ភាសាអង់គ្លេស / ចិន / សាកល្បង)
+              </p>
             </div>
           </div>
 
@@ -661,19 +675,42 @@
       <div class="modal-body">
         <input type="hidden" id="editCharId">
         
-        <!-- Dedicated VoxCPM Character Voice Header -->
-        <div style="margin-bottom: 14px; padding: 12px 14px; background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-md); display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 1.5rem;">⚡</span>
-          <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: #10b981;">VoxCPM Voice Clone Engine</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted);">កំណត់ ឬ Upload សំឡេងគំរូពិតសម្រាប់តួអង្គនេះ (OpenBMB)</div>
+        <!-- Mode Switcher Tabs for Character -->
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button type="button" class="btn btn-sm btn-outline active" id="charModeEdge" onclick="selectCharMode('edge_tts')" style="flex:1;">
+            🎙️ Studio Khmer Voice
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" id="charModeClone" onclick="selectCharMode('voxcpm')" style="flex:1;">
+            ⚡ VoxCPM Voice Clone
+          </button>
+        </div>
+
+        <!-- Studio Khmer Edge Section -->
+        <div id="charEdgeSection" style="display:block;">
+          <div class="form-group">
+            <label class="form-label">🗣️ សំឡេងគោល (Base Speaker):</label>
+            <select id="charVoiceCode" class="form-input">
+              <option value="km-KH-PisethNeural">Piseth Neural (ប្រុស / Male)</option>
+              <option value="km-KH-SreymomNeural">Sreymom Neural (ស្រី / Female)</option>
+            </select>
           </div>
+          <div class="form-row" style="display:flex; gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">ល្បឿននិយាយ (Rate): <span id="valCharRate">+0%</span></label>
+              <input type="range" id="inputCharRate" min="-25" max="30" value="0" class="form-range" oninput="document.getElementById('valCharRate').innerText=(this.value>=0?'+':'')+this.value+'%'">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">កម្ពស់សំនៀង (Pitch): <span id="valCharPitch">+0Hz</span></label>
+              <input type="range" id="inputCharPitch" min="-25" max="25" value="0" class="form-range" oninput="document.getElementById('valCharPitch').innerText=(this.value>=0?'+':'')+this.value+'Hz'">
+            </div>
+          </div>
+          <small class="form-hint">💡 កែសម្រួល Pitch និង Rate ដើម្បីបង្កើតចរិតលក្ខណៈតួអង្គ (តាចាស់, ក្មេងប្រុស, តួឯក, យាយចាស់...)។</small>
         </div>
 
         <!-- VoxCPM Clone Section -->
-        <div id="charCloneSection" style="display:block;">
+        <div id="charCloneSection" style="display:none;">
           <div class="form-group">
-            <label class="form-label">📂 ជ្រើសរើសសំឡេងគំរូដែលមានស្រាប់ក្នុង Voice Bank:</label>
+            <label class="form-label">📂 ជ្រើសរើសសំឡេងគំរូក្នុង Voice Bank:</label>
             <select id="charSelectRefSample" class="form-input" onchange="onCharSampleSelected(this.value)">
               <option value="">-- ជ្រើសរើសសំឡេងគំរូ --</option>
             </select>
@@ -681,7 +718,6 @@
           <div class="form-group">
             <label class="form-label">📤 ឬ Upload ឯកសារសំឡេងគំរូថ្មី (MP3 / WAV 3-10s):</label>
             <input type="file" id="charUploadRefAudio" class="form-input" accept="audio/*" onchange="previewUploadedSample(this)">
-            <small class="form-hint">សំឡេងគំរូកាន់តែច្បាស់ ក្លូនចេញមកកាន់តែដូចពិត។</small>
           </div>
           <div id="charAudioPreviewBox" style="display:none; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px;">
             <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">🎵 ស្តាប់សំឡេងគំរូ (Sample Preview):</label>

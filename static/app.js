@@ -18,7 +18,7 @@ function initUserSession() {
 }
 
 let gSessionId = initUserSession();
-let gCurrentTtsMode = "voxcpm";
+let gCurrentTtsMode = "edge_tts";
 
 // Audio Preview Player
 const gAudio = document.getElementById("globalAudioPlayer");
@@ -593,7 +593,7 @@ async function loadSettings() {
     if (gSettings.tts_provider) {
       selectTtsMode(gSettings.tts_provider);
     } else {
-      selectTtsMode("voxcpm");
+      selectTtsMode("edge_tts");
     }
   } catch (e) {
     console.error("Error loading settings:", e);
@@ -647,7 +647,7 @@ async function loadVoices() {
 }
 
 let gActiveEditCharId = null;
-let gCharMode = "voxcpm";
+let gCharMode = "edge_tts";
 
 function renderVoiceBank() {
   const container = document.getElementById("voiceBankGrid");
@@ -657,23 +657,30 @@ function renderVoiceBank() {
     const card = document.createElement("div");
     card.className = "voice-card";
     
+    const isCloned = v.provider === "voxcpm" && v.ref_audio;
     const isCustomProfile = v.is_custom_profile;
     const isCustomized = v.is_customized;
     
-    const badgeHtml = `<span class="badge-clone-neon">⚡ VoxCPM Cloned</span>`;
+    let badgeHtml = "";
+    if (isCloned) {
+      badgeHtml = `<span class="badge-clone-neon">⚡ VoxCPM Cloned</span>`;
+    } else {
+      badgeHtml = `<span class="badge" style="background:rgba(56,189,248,0.15); color:var(--accent-color); font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:700;">🎙️ Studio Khmer</span>`;
+    }
     
     let infoHtml = "";
-    if (v.ref_audio) {
+    if (isCloned) {
       infoHtml = `<div class="voice-card-meta">🎵 គំរូ៖ <strong style="color:var(--accent-color)" title="${v.ref_audio}">${v.ref_audio.length > 22 ? v.ref_audio.substring(0, 20) + '...' : v.ref_audio}</strong></div>`;
     } else {
-      infoHtml = `<div class="voice-card-meta" style="color:var(--text-muted)">🎵 គំរូដើមប្រព័ន្ធ (Default Sample)</div>`;
+      const vSpeaker = v.voice_code ? (v.voice_code.includes('Piseth') ? 'Piseth (ប្រុស)' : 'Sreymom (ស្រី)') : 'Piseth';
+      infoHtml = `<div class="voice-card-meta">${vSpeaker} | Speed: ${v.rate || '+0%'} | Pitch: ${v.pitch || '+0Hz'}</div>`;
     }
     
     let previewBtn = "";
-    if (v.ref_audio) {
+    if (isCloned) {
       previewBtn = `<button class="btn btn-sm btn-secondary" onclick="playRefAudio('${v.ref_audio}')" title="ស្តាប់សំឡេងគំរូ">▶️ ស្តាប់គំរូ</button>`;
     } else {
-      previewBtn = `<button class="btn btn-sm btn-secondary" onclick="quickPreviewCharacter('${v.id}')" title="សាកល្បងស្តាប់">▶️ ស្តាប់គំរូ</button>`;
+      previewBtn = `<button class="btn btn-sm btn-secondary" onclick="quickPreviewCharacter('${v.id}')" title="សាកល្បងស្តាប់">▶️ ស្តាប់</button>`;
     }
     
     card.innerHTML = `
@@ -684,7 +691,7 @@ function renderVoiceBank() {
       ${infoHtml}
       <div class="voice-card-actions" style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
         <button class="btn btn-sm btn-primary" onclick="openEditCharModal('${v.id}')" style="flex:1;">
-          ⚡ ផ្លាស់ប្តូរ / ក្លូន
+          ⚙️ កែសម្រួលសំឡេង
         </button>
         ${previewBtn}
         ${isCustomized ? `<button class="btn btn-sm btn-outline" style="color:var(--danger-color)" onclick="resetCharacterToDefault('${v.id}')" title="កំណត់ទៅសភាពដើម">🔄 Reset</button>` : ''}
@@ -701,7 +708,29 @@ async function openEditCharModal(charId) {
   if (!v) return;
   
   document.getElementById("editCharId").value = charId;
-  document.getElementById("editCharTitle").innerText = `🎭 កែប្រែសំឡេងគំរូ VoxCPM៖ ${v.name}`;
+  document.getElementById("editCharTitle").innerText = `🎭 កែប្រែសំឡេង៖ ${v.name}`;
+  
+  // Set mode
+  selectCharMode(v.provider || "edge_tts");
+
+  // Populate Edge TTS fields
+  if (v.voice_code) document.getElementById("charVoiceCode").value = v.voice_code;
+  if (v.rate) {
+    const rNum = parseInt(v.rate.replace('%', '').replace('+', '')) || 0;
+    document.getElementById("inputCharRate").value = rNum;
+    document.getElementById("valCharRate").innerText = (rNum >= 0 ? '+' : '') + rNum + '%';
+  } else {
+    document.getElementById("inputCharRate").value = 0;
+    document.getElementById("valCharRate").innerText = "+0%";
+  }
+  if (v.pitch) {
+    const pNum = parseInt(v.pitch.replace('Hz', '').replace('+', '')) || 0;
+    document.getElementById("inputCharPitch").value = pNum;
+    document.getElementById("valCharPitch").innerText = (pNum >= 0 ? '+' : '') + pNum + 'Hz';
+  } else {
+    document.getElementById("inputCharPitch").value = 0;
+    document.getElementById("valCharPitch").innerText = "+0Hz";
+  }
   
   // Load available samples into select
   const select = document.getElementById("charSelectRefSample");
@@ -720,9 +749,6 @@ async function openEditCharModal(charId) {
     console.error(e);
   }
   
-  // Set current mode
-  selectCharMode("voxcpm");
-  
   // If has ref_audio, setup audio player
   if (v.ref_audio) {
     onCharSampleSelected(v.ref_audio);
@@ -740,11 +766,16 @@ function closeEditCharModal() {
 }
 
 function selectCharMode(mode) {
-  gCharMode = "voxcpm";
+  gCharMode = mode || "edge_tts";
   const btnClone = document.getElementById("charModeClone");
-  if (btnClone) btnClone.classList.add("active");
+  const btnEdge = document.getElementById("charModeEdge");
   const secClone = document.getElementById("charCloneSection");
-  if (secClone) secClone.style.display = "block";
+  const secEdge = document.getElementById("charEdgeSection");
+  
+  if (btnClone) btnClone.classList.toggle("active", gCharMode === "voxcpm");
+  if (btnEdge) btnEdge.classList.toggle("active", gCharMode === "edge_tts");
+  if (secClone) secClone.style.display = gCharMode === "voxcpm" ? "block" : "none";
+  if (secEdge) secEdge.style.display = gCharMode === "edge_tts" ? "block" : "none";
 }
 
 function onCharSampleSelected(val) {
@@ -778,7 +809,7 @@ function playRefAudio(filename) {
   }
   gAudio.src = `/api/voice_bank/audio/${encodeURIComponent(filename)}?t=${Date.now()}`;
   gAudio.play().catch(e => {
-    alert("មិនអាចចាក់សំឡេងគំរូបានឡើយ៖ ឯកសារសំឡេងគំរូ (" + filename + ") មិនមាននៅលើ Server នេះទេ។ ប្រសិនបើអ្នកកំពុងប្រើប្រាស់ Render.com សូមប្តូរមកប្រើតាម Link Cloudflare លើកុំព្យូទ័រផ្ទាល់របស់អ្នកវិញ ព្រោះឯកសារសំឡេងទាំងអស់ស្ថិតនៅលើកុំព្យូទ័រនេះ។");
+    alert("មិនអាចចាក់សំឡេងគំរូបានឡើយ៖ ឯកសារសំឡេងគំរូ (" + filename + ") មិនមាននៅលើ Server នេះទេ។");
   });
 }
 
@@ -813,12 +844,20 @@ async function testCharacterPreview() {
   const payload = {
     char_id: charId,
     text: text,
-    provider: "voxcpm"
+    provider: gCharMode
   };
   
-  const refSel = document.getElementById("charSelectRefSample");
-  if (refSel && refSel.value) {
-    payload.ref_audio = refSel.value;
+  if (gCharMode === "voxcpm") {
+    const refSel = document.getElementById("charSelectRefSample");
+    if (refSel && refSel.value) {
+      payload.ref_audio = refSel.value;
+    }
+  } else {
+    payload.voice_code = document.getElementById("charVoiceCode").value;
+    const r = parseInt(document.getElementById("inputCharRate").value) || 0;
+    const p = parseInt(document.getElementById("inputCharPitch").value) || 0;
+    payload.rate = (r >= 0 ? '+' : '') + r + '%';
+    payload.pitch = (p >= 0 ? '+' : '') + p + 'Hz';
   }
   
   try {
@@ -847,18 +886,26 @@ async function saveCharacterChanges() {
   const charId = gActiveEditCharId;
   const fd = new FormData();
   fd.append("char_id", charId);
-  fd.append("provider", "voxcpm");
+  fd.append("provider", gCharMode);
   
-  const refSelect = document.getElementById("charSelectRefSample").value;
-  const fileInput = document.getElementById("charUploadRefAudio");
-  
-  if (fileInput.files.length) {
-    fd.append("audio_file", fileInput.files[0]);
-  } else if (refSelect) {
-    fd.append("ref_audio", refSelect);
+  if (gCharMode === "voxcpm") {
+    const refSelect = document.getElementById("charSelectRefSample").value;
+    const fileInput = document.getElementById("charUploadRefAudio");
+    
+    if (fileInput.files.length) {
+      fd.append("audio_file", fileInput.files[0]);
+    } else if (refSelect) {
+      fd.append("ref_audio", refSelect);
+    } else {
+      alert("សូមជ្រើសរើស ឬ Upload សំឡេងគំរូសម្រាប់ Clone!");
+      return;
+    }
   } else {
-    alert("សូមជ្រើសរើស ឬ Upload សំឡេងគំរូសម្រាប់ Clone!");
-    return;
+    fd.append("voice_code", document.getElementById("charVoiceCode").value);
+    const r = parseInt(document.getElementById("inputCharRate").value) || 0;
+    const p = parseInt(document.getElementById("inputCharPitch").value) || 0;
+    fd.append("rate", (r >= 0 ? '+' : '') + r + '%');
+    fd.append("pitch", (p >= 0 ? '+' : '') + p + 'Hz');
   }
   
   try {
@@ -1507,13 +1554,28 @@ async function generateSingleVoice(idx) {
 
 // 8. TTS Modes & Batch Generation
 function selectTtsMode(mode) {
-  gCurrentTtsMode = "voxcpm";
+  gCurrentTtsMode = mode || "edge_tts";
+  const elEdge = document.getElementById("modeEdgeTts");
+  const elVox = document.getElementById("modeVoxcpm");
+  
+  if (elEdge) {
+    const isActive = gCurrentTtsMode === "edge_tts";
+    elEdge.classList.toggle("active", isActive);
+    elEdge.style.border = isActive ? "2px solid var(--accent-color)" : "1px solid var(--border-color)";
+    elEdge.style.background = isActive ? "rgba(56, 189, 248, 0.08)" : "rgba(255, 255, 255, 0.03)";
+  }
+  if (elVox) {
+    const isActive = gCurrentTtsMode === "voxcpm";
+    elVox.classList.toggle("active", isActive);
+    elVox.style.border = isActive ? "2px solid var(--accent-color)" : "1px solid var(--border-color)";
+    elVox.style.background = isActive ? "rgba(16, 185, 129, 0.08)" : "rgba(255, 255, 255, 0.03)";
+  }
   
   // Update setting on server
   fetch("/api/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tts_provider: "voxcpm" })
+    body: JSON.stringify({ tts_provider: gCurrentTtsMode })
   }).catch(() => {});
 }
 

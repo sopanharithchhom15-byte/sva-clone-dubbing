@@ -217,6 +217,7 @@ def apply_audio_speedup(audio_path: str, speed_factor: float) -> bool:
         cmd = [
             "ffmpeg", "-y", "-i", str(p),
             "-filter:a", f"atempo={clamped_speed:.3f}",
+            "-acodec", "libmp3lame", "-b:a", "192k",
             "-vn", str(temp_out)
         ]
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -271,7 +272,11 @@ async def generate_segment_voice(
     settings: Dict[str, Any],
     voice_config_override: Optional[Dict[str, Any]] = None
 ) -> bool:
-    """Generates voice for a single subtitle segment using exclusively VoxCPM Voice Clone (100% VoxCPM)"""
+    """
+    Generates voice for a single subtitle segment according to its assigned voice and settings.
+    - Default/Studio Mode: 100% natural, fluent Khmer Neural TTS with customized character acting profiles.
+    - VoxCPM Mode: Voice cloning with multi-endpoint failover and safe studio fallback.
+    """
     voice_id = segment.get("voice", "narrator_male")
     vcfg = voice_config_override or find_voice_config(voice_id)
     raw_text = segment.get("text", "").strip() or "..."
@@ -292,30 +297,56 @@ async def generate_segment_voice(
         
     slot_sec = (end_sec - start_sec) if (end_sec > start_sec) else 0.0
 
-    # Resolve reference audio sample for cloning
-    ref_audio_name = vcfg.get("ref_audio")
-    ref_audio_full = resolve_reference_audio(ref_audio_name)
+    # Calculate density: Khmer characters per second
+    # Standard speech ~8-11 char/sec. If > 12 chars/sec, text is dense for this slot
+    char_count = len(clean_text.replace(" ", ""))
+    dense_rate_bonus = 0
+    if slot_sec > 0.5 and char_count > 0:
+        chars_per_sec = char_count / slot_sec
+        if chars_per_sec > 13:
+            dense_rate_bonus = 15
+        elif chars_per_sec > 10.5:
+            dense_rate_bonus = 10
 
-    endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
-    token = settings.get("hf_token", "") or os.environ.get("HF_TOKEN", "")
-    
-    print(f"[VoxCPM Exclusive] Generating segment: '{clean_text[:35]}...' using ref: {ref_audio_full}")
+    # Determine provider: check override, segment, or settings
+    provider = (voice_config_override or {}).get("provider") or segment.get("provider") or settings.get("tts_provider") or "edge_tts"
 
-    # Exclusively generate using VoxCPM Voice Clone with sufficient timeout
-    await asyncio.wait_for(
-        generate_voxcpm_tts(
-            text=clean_text,
-            ref_audio_path=ref_audio_full,
-            output_path=str(output_file),
-            endpoint_url=endpoint,
-            hf_token=token,
-            max_retries=2
-        ),
-        timeout=120.0
-    )
+    generated = False
+    if provider == "voxcpm":
+        # Resolve reference audio sample for cloning
+        ref_audio_name = vcfg.get("ref_audio")
+        ref_audio_full = resolve_reference_audio(ref_audio_name)
 
-    if not output_file.exists() or output_file.stat().st_size == 0:
-        raise RuntimeError(f"VoxCPM Voice Clone failed to produce audio for: {clean_text[:35]}")
+        endpoint = settings.get("voxcpm_space_id") or settings.get("voxcpm_endpoint", "openbmb/VoxCPM-Demo")
+        token = settings.get("hf_token", "") or os.environ.get("HF_TOKEN", "")
+        
+        print(f"[VoxCPM] Generating segment: '{clean_text[:35]}...' using ref: {ref_audio_full}")
+        try:
+            await asyncio.wait_for(
+                generate_voxcpm_tts(
+                    text=clean_text,
+                    ref_audio_path=ref_audio_full,
+                    output_path=str(output_file),
+                    endpoint_url=endpoint,
+                    hf_token=token,
+                    max_retries=2
+                ),
+                timeout=120.0
+            )
+            if output_file.exists() and output_file.stat().st_size > 0:
+                generated = True
+        except Exception as e:
+            print(f"[VoxCPM] Failed ({e}), switching to high-definition Khmer Studio voice...")
+            generated = False
+
+    if not generated:
+        # High-Definition Studio Khmer Character Voice (Edge Neural)
+        voice_code = vcfg.get("voice_code", "km-KH-PisethNeural")
+        rate_str = vcfg.get("rate", "+0%")
+        if dense_rate_bonus > 0 and (rate_str == "+0%" or not rate_str):
+            rate_str = f"+{dense_rate_bonus}%"
+        pitch = vcfg.get("pitch", "+0Hz")
+        await generate_edge_tts(clean_text, voice_code, rate_str, pitch, str(output_file))
 
     # Dynamic post-generation duration adjustment:
     # If the generated speech exceeds the subtitle time slot, speed it up smoothly

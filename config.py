@@ -70,7 +70,7 @@ DEFAULT_SETTINGS = {
     "app_name": "SVA Clone Dubbing",
     "gemini_api_key": DEFAULT_GEMINI_KEY,
     "gemini_model": "gemini-3.8-flash",
-    "tts_provider": "voxcpm", # VoxCPM Voice Clone as dedicated engine
+    "tts_provider": "edge_tts", # "edge_tts" (Studio Khmer Character Dubbing) or "voxcpm"
     "voxcpm_endpoint": "https://openbmb-voxcpm-demo.hf.space",
     "voxcpm_space_id": "openbmb/VoxCPM-Demo",
     "hf_token": DEFAULT_HF_TOKEN,
