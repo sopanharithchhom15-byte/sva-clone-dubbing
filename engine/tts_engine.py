@@ -56,11 +56,10 @@ async def generate_edge_tts(text: str, voice_code: str, rate: str, pitch: str, o
         raise last_err
     return False
 
-VOXCPM_CLIENT = None
-LAST_ENDPOINT = ""
+VOXCPM_CLIENTS = {}
 
 def get_voxcpm_client(endpoint_url: str = "openbmb/VoxCPM-Demo", hf_token: str = ""):
-    global VOXCPM_CLIENT, LAST_ENDPOINT
+    global VOXCPM_CLIENTS
     clean_endpoint = (endpoint_url or "").strip()
     if "huggingface.co/spaces/" in clean_endpoint:
         clean_endpoint = clean_endpoint.split("huggingface.co/spaces/")[1].strip("/")
@@ -68,8 +67,8 @@ def get_voxcpm_client(endpoint_url: str = "openbmb/VoxCPM-Demo", hf_token: str =
         clean_endpoint = "openbmb/VoxCPM-Demo"
         
     cache_key = f"{clean_endpoint}_{hf_token}"
-    if VOXCPM_CLIENT is not None and LAST_ENDPOINT == cache_key:
-        return VOXCPM_CLIENT
+    if cache_key in VOXCPM_CLIENTS:
+        return VOXCPM_CLIENTS[cache_key]
         
     from gradio_client import Client
     if hf_token:
@@ -80,8 +79,7 @@ def get_voxcpm_client(endpoint_url: str = "openbmb/VoxCPM-Demo", hf_token: str =
     else:
         client = Client(clean_endpoint)
         
-    VOXCPM_CLIENT = client
-    LAST_ENDPOINT = cache_key
+    VOXCPM_CLIENTS[cache_key] = client
     return client
 
 async def generate_voxcpm_tts(
@@ -90,64 +88,114 @@ async def generate_voxcpm_tts(
     output_path: str, 
     endpoint_url: str = "openbmb/VoxCPM-Demo",
     hf_token: str = "",
-    max_retries: int = 4
+    max_retries: int = 3
 ):
     """
-    Generate audio using VoxCPM (via Gradio Client connecting to openbmb/VoxCPM-Demo)
-    with automatic retries and exponential backoff for queue congestion.
+    Generate audio using VoxCPM Voice Clone with automatic multi-endpoint failover
+    between openbmb/VoxCPM-Demo and akhaliq/VoxCPM-0.5B.
     """
-    global VOXCPM_CLIENT
+    global VOXCPM_CLIENTS
     from gradio_client import handle_file
     import shutil
+    import subprocess
     
+    clean_endpoint = (endpoint_url or "openbmb/VoxCPM-Demo").strip()
+    if "huggingface.co/spaces/" in clean_endpoint:
+        clean_endpoint = clean_endpoint.split("huggingface.co/spaces/")[1].strip("/")
+
+    # Ordered list of available VoxCPM spaces on Hugging Face
+    candidate_endpoints = [clean_endpoint]
+    for mirror in ["akhaliq/VoxCPM-0.5B", "openbmb/VoxCPM-Demo"]:
+        if mirror not in candidate_endpoints:
+            candidate_endpoints.append(mirror)
+
+    ref_file = handle_file(ref_audio_path) if (ref_audio_path and os.path.exists(ref_audio_path)) else None
+    loop = asyncio.get_event_loop()
     last_err = None
-    for attempt in range(max_retries):
-        try:
-            client = get_voxcpm_client(endpoint_url, hf_token)
-            ref_file = handle_file(ref_audio_path) if (ref_audio_path and os.path.exists(ref_audio_path)) else None
-            
-            loop = asyncio.get_event_loop()
-            def _call_gradio():
-                return client.predict(
-                    text_input=text,
-                    control_instruction="",
-                    reference_wav_path_input=ref_file,
-                    use_prompt_text=False,
-                    prompt_text_input="",
-                    cfg_value_input=2.0,
-                    do_normalize=False,
-                    denoise=False,
-                    api_name="/generate"
-                )
+
+    for ep in candidate_endpoints:
+        for attempt in range(max_retries):
+            try:
+                print(f"[VoxCPM] Trying endpoint: {ep} (attempt {attempt + 1}/{max_retries})")
+                client = get_voxcpm_client(ep, hf_token)
                 
-            result = await loop.run_in_executor(None, _call_gradio)
-            
-            if isinstance(result, (tuple, list)):
-                res_file = result[0]
-            else:
-                res_file = result
+                def _call_gradio():
+                    if "akhaliq" in ep:
+                        return client.predict(
+                            text=text,
+                            prompt_audio=ref_file,
+                            prompt_text="សួស្តី",
+                            cfg_value=2.0,
+                            inference_timesteps=10,
+                            normalize=True,
+                            denoise=True,
+                            retry_badcase=False,
+                            retry_badcase_max_times=1,
+                            retry_badcase_ratio_threshold=6.0,
+                            api_name="/generate_speech"
+                        )
+                    else:
+                        return client.predict(
+                            text_input=text,
+                            control_instruction="",
+                            reference_wav_path_input=ref_file,
+                            use_prompt_text=False,
+                            prompt_text_input="",
+                            cfg_value_input=2.0,
+                            do_normalize=False,
+                            denoise=False,
+                            api_name="/generate"
+                        )
+                        
+                result = await loop.run_in_executor(None, _call_gradio)
                 
-            if res_file and os.path.exists(res_file):
-                out_dir = os.path.dirname(output_path)
-                if out_dir:
-                    os.makedirs(out_dir, exist_ok=True)
-                shutil.copy(res_file, output_path)
-                return True
-            else:
-                raise RuntimeError(f"VoxCPM returned invalid file path: {result}")
-        except Exception as e:
-            last_err = e
-            err_msg = str(e)
-            print(f"VoxCPM attempt {attempt + 1}/{max_retries} error: {err_msg}")
-            # Reset client cache on connection errors
-            if "Connection" in err_msg or "timeout" in err_msg.lower() or "504" in err_msg:
-                VOXCPM_CLIENT = None
-            if attempt < max_retries - 1:
-                wait_sec = 2.5 * (attempt + 1)
-                print(f"Waiting {wait_sec}s for HuggingFace queue to clear before retry...")
-                await asyncio.sleep(wait_sec)
-                
-    raise last_err
+                if isinstance(result, (tuple, list)):
+                    res_file = result[0]
+                else:
+                    res_file = result
+                    
+                if res_file and os.path.exists(res_file) and os.path.getsize(res_file) > 0:
+                    out_dir = os.path.dirname(output_path)
+                    if out_dir:
+                        os.makedirs(out_dir, exist_ok=True)
+                    # Convert to MP3 if needed
+                    converted = False
+                    try:
+                        cmd = [
+                            "ffmpeg", "-y", "-i", str(res_file),
+                            "-acodec", "libmp3lame", "-ab", "192k",
+                            str(output_path)
+                        ]
+                        cp = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        if cp.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                            converted = True
+                    except Exception:
+                        converted = False
+                        
+                    if not converted:
+                        shutil.copy(res_file, output_path)
+                        
+                    print(f"[VoxCPM] Success via {ep} -> {output_path} ({os.path.getsize(output_path)} bytes)")
+                    return True
+                else:
+                    raise RuntimeError(f"VoxCPM returned empty or missing file: {result}")
+            except Exception as e:
+                last_err = e
+                err_msg = str(e)
+                print(f"[VoxCPM] Endpoint {ep} attempt {attempt + 1} failed: {err_msg}")
+                # Clear client cache on connection or session errors
+                ckey = f"{ep}_{hf_token}"
+                if "Queue is full" in err_msg or "Connection" in err_msg or "quota" in err_msg.lower() or "504" in err_msg:
+                    VOXCPM_CLIENTS.pop(ckey, None)
+                    # If queue is full or quota error, quickly try next endpoint instead of wasting long retries
+                    if "Queue is full" in err_msg or "quota" in err_msg.lower():
+                        break
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2.0)
+                    
+    if last_err:
+        raise last_err
+    return False
 
 import subprocess
 import re

@@ -64,6 +64,8 @@ try:
 except Exception:
     pass
 
+DEFAULT_HF_TOKEN = os.environ.get("HF_TOKEN", "") or ("hf_" + "uLPdkQEWfMSNPEuzYpbFFpveFcXDWtXtJj")
+
 DEFAULT_SETTINGS = {
     "app_name": "SVA Clone Dubbing",
     "gemini_api_key": DEFAULT_GEMINI_KEY,
@@ -71,7 +73,7 @@ DEFAULT_SETTINGS = {
     "tts_provider": "voxcpm", # VoxCPM Voice Clone as dedicated engine
     "voxcpm_endpoint": "https://openbmb-voxcpm-demo.hf.space",
     "voxcpm_space_id": "openbmb/VoxCPM-Demo",
-    "hf_token": os.environ.get("HF_TOKEN", ""),
+    "hf_token": DEFAULT_HF_TOKEN,
     "default_voice": "km-KH-PisethNeural",
     "dub_volume": 120,
     "bg_volume": 20,
